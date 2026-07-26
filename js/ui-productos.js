@@ -58,8 +58,10 @@ function renderInventario() {
 
   const bajos = productosConStockBajo();
   const alerta = el('stock-bajo-lista');
-  if (bajos.length > 0) {
-    alerta.textContent = `⚠️ Stock bajo: ${bajos.map(p => `${p.nombre} (${p.stock})`).join(', ')}`;
+  const filtroActivo = el('inv-filtro-stock').value === 'bajo';
+  if (bajos.length > 0 && !filtroActivo) {
+    // Resumen compacto (no lista todos los nombres, que puede ser enorme).
+    alerta.innerHTML = `⚠️ <strong>${bajos.length}</strong> producto(s) con stock bajo o agotado. <button type="button" id="btn-ver-bajos" class="btn-mini">Ver solo esos</button>`;
     alerta.classList.remove('hidden');
   } else {
     alerta.classList.add('hidden');
@@ -130,6 +132,14 @@ export function initProductosInventario() {
     el(id).addEventListener('input', renderInventario));
   el('inv-filtro-categoria').addEventListener('change', renderInventario);
   el('inv-filtro-stock').addEventListener('change', renderInventario);
+
+  // "Ver solo esos" del aviso de stock bajo → aplica el filtro de stock bajo.
+  el('stock-bajo-lista').addEventListener('click', e => {
+    if (e.target.id === 'btn-ver-bajos') {
+      el('inv-filtro-stock').value = 'bajo';
+      renderInventario();
+    }
+  });
 
   el('btn-exportar-excel').addEventListener('click', exportarInventarioExcel);
   el('btn-importar-excel').addEventListener('click', () => el('input-importar-excel').click());

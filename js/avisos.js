@@ -46,6 +46,11 @@ function calcularAvisos() {
   if (sinCodigo.length) {
     avisos.push({ tipo: 'warning', icono: '🔢', titulo: 'Productos sin código de barras', mensaje: `${sinCodigo.length} producto(s): ${nombres(sinCodigo)}`, tab: 'productos' });
   }
+
+  const sinCategoria = productos.filter(p => !p.categoria || !String(p.categoria).trim());
+  if (sinCategoria.length) {
+    avisos.push({ tipo: 'warning', icono: '🗂️', titulo: 'Productos sin categoría', mensaje: `${sinCategoria.length} producto(s): ${nombres(sinCategoria)}`, tab: 'inventario' });
+  }
   const duplicados = codigosDuplicados(productos);
   if (duplicados.length) {
     avisos.push({ tipo: 'error', icono: '🚫', titulo: 'Códigos de barra duplicados', mensaje: `Se repiten los códigos: ${duplicados.join(', ')}. Puede causar errores al escanear.`, tab: 'productos' });

@@ -659,6 +659,19 @@ kbd {
 .chip-info { background: #e6effb; color: #1d4ed8; }
 .chip-alerta { background: #fdecea; color: var(--color-danger); }
 
+.btn-mini {
+  border: 1px solid currentColor;
+  background: rgba(255,255,255,0.5);
+  color: inherit;
+  border-radius: 999px;
+  padding: 0.15rem 0.7rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-left: 0.4rem;
+}
+.btn-mini:hover { background: rgba(255,255,255,0.9); }
+
 .alerta-stock {
   background: #fdf6ec;
   border: 1px solid #f0dcbc;
