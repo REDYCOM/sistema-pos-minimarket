@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POS Minimarket</title>
+<link rel="stylesheet" href="css/style.css">
+<!-- PWA: instalable y offline -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#14479a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Minimarket">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+</head>
+<body>
+
+<!-- CARGA INICIAL (esperando el primer snapshot de Firestore) -->
+<div id="loading-overlay" class="loading-overlay">
+  <div class="loading-spinner"></div>
+  <p>Conectando...</p>
+</div>
+
+<!-- LOGIN -->
+<section id="view-login" class="view active">
+  <div class="card card-narrow card-login">
+    <img id="login-logo" class="app-logo hidden" alt="Logo del negocio">
+    <h1>🏪 Punto de Venta</h1>
+    <form id="form-login">
+      <label>Usuario</label>
+      <input type="text" id="login-username" autocomplete="username" required>
+      <label>Contraseña</label>
+      <input type="password" id="login-password" autocomplete="current-password">
+      <p id="login-error" class="error hidden"></p>
+      <button type="submit" class="btn btn-primary btn-lg">🔓 Ingresar</button>
+    </form>
+  </div>
+</section>
+
+<!-- CAMBIO OBLIGATORIO DE CONTRASEÑA (primer login admin) -->
+<section id="view-set-password" class="view">
+  <div class="card card-narrow">
+    <h1>🔑 Configura tu contraseña</h1>
+    <p>Es tu primer ingreso. Define una contraseña para la cuenta <strong id="set-password-username"></strong>.</p>
+    <form id="form-set-password">
+      <label>Nueva contraseña</label>
+      <input type="password" id="new-password" minlength="4" required>
+      <label>Confirmar contraseña</label>
+      <input type="password" id="new-password-confirm" minlength="4" required>
+      <p id="set-password-error" class="error hidden"></p>
+      <button type="submit" class="btn btn-primary btn-lg">✅ Guardar y continuar</button>
+    </form>
+  </div>
+</section>
+
+<!-- APERTURA DE CAJA -->
+<section id="view-apertura" class="view">
+  <div class="card card-narrow">
+    <h1>🗄️ Apertura de Caja</h1>
+    <p>Usuario: <strong id="apertura-usuario"></strong></p>
+    <p>Fecha y hora: <strong id="apertura-fecha"></strong></p>
+    <form id="form-apertura">
+      <label>Monto de apertura (Bs)</label>
+      <input type="number" id="apertura-monto" step="0.01" min="0" required>
+      <button type="submit" class="btn btn-primary btn-lg">🔓 Abrir Caja</button>
+    </form>
+  </div>
+</section>
+
+<!-- DASHBOARD DE VENTA -->
+<section id="view-dashboard" class="view">
+  <div id="sidebar-overlay" class="sidebar-overlay"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-perfil">
+      <div class="sidebar-avatar">
+        <span class="avatar-emoji">🏪</span>
+        <img id="topbar-logo" class="avatar-img hidden" alt="Logo del negocio">
+      </div>
+      <div class="sidebar-perfil-info">
+        <div class="sidebar-nombre" id="sidebar-usuario">Usuario</div>
+        <div class="sidebar-rol" id="sidebar-rol">—</div>
+      </div>
+    </div>
+    <nav class="tabs" id="main-tabs">
+      <button class="tab-btn active" data-tab="venta">🛒 <span>Venta</span></button>
+      <button class="tab-btn" data-tab="inventario">📦 <span>Inventario</span></button>
+      <button class="tab-btn" data-tab="productos">🏷️ <span>Productos</span></button>
+      <button class="tab-btn" data-tab="dinero">💵 <span>Entrada/Salida</span></button>
+      <button class="tab-btn" data-tab="compras">🧾 <span>Compras</span></button>
+      <button class="tab-btn hidden" data-tab="historial" id="tab-btn-historial">📊 <span>Ventas/Historial</span></button>
+      <button class="tab-btn hidden" data-tab="estadisticas" id="tab-btn-estadisticas">📈 <span>Estadísticas</span></button>
+      <button class="tab-btn hidden" data-tab="configuracion" id="tab-btn-configuracion">⚙️ <span>Configuración</span></button>
+    </nav>
+  </aside>
+
+  <div class="contenido-principal">
+    <header class="topbar">
+      <button id="btn-toggle-sidebar" class="btn-hamburguesa" aria-label="Abrir menú">☰</button>
+      <span class="marca" id="marca-negocio">🏪 Minimarket</span>
+      <span id="stock-bajo-alerta" class="badge badge-warning hidden"></span>
+      <div class="topbar-right">
+        <div id="clock" class="clock">🕒</div>
+        <button id="btn-cerrar-turno" class="btn btn-danger">🔒 Cerrar turno</button>
+      </div>
+    </header>
+
+    <div class="area-tabs">
+
+    <div id="avisos-bar" class="avisos-bar hidden"></div>
+
+  <!-- TAB VENTA -->
+  <div class="tab-content active" id="tab-venta">
+    <div class="venta-layout">
+      <div class="venta-buscar">
+        <input type="text" id="busqueda-producto" class="input-lg" placeholder="Escanea código de barras o busca por nombre..." autocomplete="off">
+        <div id="sugerencias" class="sugerencias hidden"></div>
+      </div>
+      <table class="tabla-carrito">
+        <thead>
+          <tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th><th></th></tr>
+        </thead>
+        <tbody id="carrito-body"></tbody>
+      </table>
+      <div class="venta-resumen">
+        <div class="resumen-linea"><span>Subtotal</span><strong id="resumen-subtotal">Bs 0.00</strong></div>
+        <div class="resumen-linea">
+          <span>Descuento</span>
+          <span>
+            <input type="number" id="descuento-monto" class="input-sm" min="0" step="0.5" value="0">
+            <select id="descuento-tipo" class="input-sm">
+              <option value="monto">Bs</option>
+              <option value="porcentaje">%</option>
+            </select>
+          </span>
+        </div>
+        <div class="resumen-linea total"><span>TOTAL</span><strong id="resumen-total">Bs 0.00</strong></div>
+        <div class="cobro-botones">
+          <button id="btn-cobrar-efectivo" class="btn btn-primary btn-lg">💵 Efectivo</button>
+          <button id="btn-cobrar-qr" class="btn btn-primary btn-lg">📱 QR</button>
+          <button id="btn-cancelar-venta" class="btn btn-danger btn-lg">🗑️ Cancelar venta</button>
+        </div>
+        <div class="atajos">
+          <span class="atajos-titulo">⌨️ Atajos</span>
+          <span class="atajo"><kbd>Enter</kbd> Cobrar QR</span>
+          <span class="atajo"><kbd>Espacio</kbd> Cobrar efectivo</span>
+          <span class="atajo"><kbd>Esc</kbd> Cancelar venta</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB INVENTARIO -->
+  <div class="tab-content" id="tab-inventario">
+    <div class="toolbar">
+      <input type="text" id="inv-buscar" class="input-lg" placeholder="Buscar por nombre o código...">
+      <select id="inv-filtro-categoria" class="input-lg"><option value="">Todas las categorías</option></select>
+      <select id="inv-filtro-stock" class="input-lg">
+        <option value="">Stock: todos</option>
+        <option value="bajo">Stock bajo</option>
+        <option value="alto">Stock alto</option>
+      </select>
+      <button id="btn-importar-excel" class="btn">📥 Importar (CSV)</button>
+      <input type="file" id="input-importar-excel" accept=".csv" class="hidden">
+      <button id="btn-exportar-excel" class="btn">📤 Exportar (CSV)</button>
+    </div>
+    <div id="stock-bajo-lista" class="alerta-stock hidden"></div>
+    <table class="tabla-datos">
+      <thead>
+        <tr><th>Código</th><th>Nombre</th><th>Categoría</th><th>Rotación</th><th>Stock</th><th>P. Compra</th><th>P. Venta sugerido</th><th>P. Venta final</th></tr>
+      </thead>
+      <tbody id="inventario-body"></tbody>
+    </table>
+  </div>
+
+  <!-- TAB PRODUCTOS -->
+  <div class="tab-content" id="tab-productos">
+    <div class="toolbar">
+      <input type="text" id="prod-buscar" class="input-lg" placeholder="Buscar por proveedor, categoría, producto o código...">
+      <button id="btn-nuevo-producto" class="btn btn-primary">➕ Nuevo producto</button>
+    </div>
+    <table class="tabla-datos">
+      <thead>
+        <tr><th>Código</th><th>Nombre</th><th>Categoría</th><th>Proveedor</th><th>Stock</th><th>P. Compra</th><th>P. Venta</th><th></th></tr>
+      </thead>
+      <tbody id="productos-body"></tbody>
+    </table>
+  </div>
+
+  <!-- TAB ENTRADA/SALIDA DE DINERO -->
+  <div class="tab-content" id="tab-dinero">
+    <div class="card card-narrow">
+      <h2>💵 Registrar movimiento</h2>
+      <form id="form-dinero">
+        <label>Tipo</label>
+        <select id="dinero-tipo" required>
+          <option value="entrada">⬆️ Entrada de dinero</option>
+          <option value="salida">⬇️ Salida de dinero</option>
+        </select>
+        <label>Monto (Bs)</label>
+        <input type="number" id="dinero-monto" step="0.01" min="0.01" required>
+        <label>Motivo</label>
+        <input type="text" id="dinero-motivo" required>
+        <button type="submit" class="btn btn-primary btn-lg">💾 Guardar</button>
+      </form>
+    </div>
+    <h2>📜 Historial</h2>
+    <div class="toolbar">
+      <input type="date" id="dinero-filtro-fecha">
+      <select id="dinero-filtro-cajero"><option value="">Todos los cajeros</option></select>
+    </div>
+    <table class="tabla-datos">
+      <thead><tr><th>Fecha</th><th>Cajero</th><th>Tipo</th><th>Monto</th><th>Motivo</th></tr></thead>
+      <tbody id="dinero-body"></tbody>
+    </table>
+  </div>
+
+  <!-- TAB COMPRAS -->
+  <div class="tab-content" id="tab-compras">
+    <div class="card">
+      <h2>🧾 Nueva compra</h2>
+      <div class="compra-cabecera">
+        <div>
+          <label for="compra-proveedor">Proveedor</label>
+          <select id="compra-proveedor" required></select>
+          <input type="text" id="compra-proveedor-nuevo" class="hidden campo-nuevo" placeholder="Nombre del nuevo proveedor">
+        </div>
+        <div>
+          <label for="compra-forma-pago">Forma de pago</label>
+          <select id="compra-forma-pago">
+            <option value="aparte">Aparte (fondos del negocio)</option>
+            <option value="caja">Efectivo de caja (descuenta del turno)</option>
+          </select>
+        </div>
+        <div class="compra-cabecera-accion">
+          <button type="button" id="btn-agregar-item-compra" class="btn btn-primary">➕ Agregar producto</button>
+        </div>
+      </div>
+
+      <table class="tabla-datos" style="margin-top:1rem">
+        <thead><tr><th>Producto</th><th>Cantidad</th><th>Costo unit.</th><th>Subtotal</th><th></th></tr></thead>
+        <tbody id="compra-items-body">
+          <tr><td colspan="5" class="hint">Aún no agregaste productos a esta compra.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="compra-pie">
+        <div class="compra-total-linea"><span>TOTAL COMPRA</span><strong id="compra-total-actual">Bs 0.00</strong></div>
+        <div class="modal-botones modal-botones-left">
+          <button type="button" id="btn-vaciar-compra" class="btn">🗑️ Vaciar</button>
+          <button type="button" id="btn-registrar-compra" class="btn btn-primary btn-lg">💾 Registrar compra</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="seccion-header">
+      <h2>📜 Historial de compras</h2>
+      <div class="seccion-header-derecha">
+        <strong id="compras-total">Total del período: Bs 0.00</strong>
+        <button id="btn-compras-pdf" class="btn btn-primary">📄 Exportar PDF</button>
+      </div>
+    </div>
+    <div class="toolbar">
+      <label class="filtro-fecha">Desde <input type="date" id="compra-filtro-fecha-desde"></label>
+      <label class="filtro-fecha">Hasta <input type="date" id="compra-filtro-fecha-hasta"></label>
+    </div>
+    <table class="tabla-datos">
+      <thead><tr><th>Fecha</th><th>Proveedor</th><th>Productos</th><th>Total</th><th>Pago</th><th>Cajero</th></tr></thead>
+      <tbody id="compras-body"></tbody>
+    </table>
+  </div>
+
+  <!-- MODAL AGREGAR ÍTEM A LA COMPRA -->
+  <div id="modal-item-compra" class="modal hidden">
+    <div class="modal-content card-narrow">
+      <h2>➕ Agregar producto a la compra</h2>
+      <div class="segmento" id="item-modo-toggle">
+        <button type="button" class="segmento-btn active" data-modo="existente">Producto existente</button>
+        <button type="button" class="segmento-btn" data-modo="nuevo">Producto nuevo</button>
+      </div>
+
+      <form id="form-item-compra">
+        <!-- Modo existente -->
+        <div id="item-existente">
+          <label>Buscar producto</label>
+          <div class="venta-buscar">
+            <input type="text" id="item-buscar" placeholder="Nombre o código..." autocomplete="off">
+            <div id="item-sugerencias" class="sugerencias hidden"></div>
+          </div>
+          <p id="item-existente-elegido" class="hint">Ningún producto seleccionado.</p>
+        </div>
+
+        <!-- Modo nuevo -->
+        <div id="item-nuevo" class="hidden">
+          <label>Nombre</label>
+          <input type="text" id="item-nuevo-nombre">
+          <label>Código de barras</label>
+          <input type="text" id="item-nuevo-codigo">
+          <label>Categoría</label>
+          <select id="item-nuevo-categoria"></select>
+          <input type="text" id="item-nuevo-categoria-nueva" class="hidden campo-nuevo" placeholder="Nombre de la nueva categoría">
+          <label>Categoría de rotación</label>
+          <select id="item-nuevo-rotacion">
+            <option value="A">A</option>
+            <option value="B" selected>B</option>
+            <option value="C">C</option>
+          </select>
+          <label>Precio de venta (Bs) — opcional</label>
+          <input type="number" id="item-nuevo-precio-venta" min="0" step="0.01" placeholder="Dejar vacío para asignarlo después">
+        </div>
+
+        <div class="fila-doble">
+          <div>
+            <label>Cantidad</label>
+            <input type="number" id="item-cantidad" min="1" step="1" value="1" required>
+          </div>
+          <div>
+            <label>Costo unitario (Bs)</label>
+            <input type="number" id="item-costo" min="0" step="0.01" required>
+          </div>
+        </div>
+        <button type="button" id="btn-abrir-calculadora" class="btn btn-calc">🧮 Calcular costo (descuentos/bonificación)</button>
+
+        <div class="modal-botones">
+          <button type="button" id="btn-cerrar-modal-item" class="btn">✖️ Cancelar</button>
+          <button type="submit" class="btn btn-primary">Agregar a la compra</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL CALCULADORA DE COSTO REAL -->
+  <div id="modal-calculadora" class="modal hidden">
+    <div class="modal-content card-narrow">
+      <h2>🧮 Calcular costo real</h2>
+      <p class="hint">Ingresa lo que te da el proveedor y calcula el costo por unidad prorrateando descuentos y bonificaciones.</p>
+      <div class="fila-doble">
+        <div>
+          <label>Unidades compradas</label>
+          <input type="number" id="calc-unidades" min="0" step="1" placeholder="Ej. 24">
+        </div>
+        <div>
+          <label>Precio por unidad (Bs)</label>
+          <input type="number" id="calc-precio-unitario" min="0" step="0.01" placeholder="Precio de lista">
+        </div>
+      </div>
+      <div class="fila-doble">
+        <div>
+          <label>Unidades de bonificación (gratis)</label>
+          <input type="number" id="calc-bonificacion" min="0" step="1" value="0">
+        </div>
+        <div>
+          <label>Descuento en monto fijo (Bs)</label>
+          <input type="number" id="calc-descuento" min="0" step="0.01" value="0">
+        </div>
+      </div>
+
+      <div class="calc-resultado">
+        <div><span>Unidades totales</span><strong id="calc-unidades-totales">0 u</strong></div>
+        <div><span>Total pagado</span><strong id="calc-total-pagado">Bs 0.00</strong></div>
+        <div class="calc-destacado"><span>Costo unitario real</span><strong id="calc-costo-unit">Bs 0.00</strong></div>
+      </div>
+
+      <div class="modal-botones">
+        <button type="button" id="btn-cerrar-modal-calc" class="btn">✖️ Cancelar</button>
+        <button type="button" id="btn-aplicar-calc" class="btn btn-primary">✅ Usar este costo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB VENTAS / HISTORIAL (solo admin) -->
+  <div class="tab-content" id="tab-historial">
+    <div class="seccion-header">
+      <h2>📊 Ventas e Historial</h2>
+      <button id="btn-hist-pdf" class="btn btn-primary">📄 Exportar PDF</button>
+    </div>
+    <div class="toolbar">
+      <label class="filtro-fecha">Desde <input type="date" id="hist-desde"></label>
+      <label class="filtro-fecha">Hasta <input type="date" id="hist-hasta"></label>
+    </div>
+    <div id="hist-kpis" class="stat-grid"></div>
+
+    <h3 class="sub-titulo">🏆 Productos vendidos (mayor a menor)</h3>
+    <table class="tabla-datos">
+      <thead><tr><th>#</th><th>Producto</th><th>Cantidad</th><th>Monto</th></tr></thead>
+      <tbody id="hist-ranking"></tbody>
+    </table>
+
+    <h3 class="sub-titulo">💤 Productos sin venta / baja rotación</h3>
+    <table class="tabla-datos">
+      <thead><tr><th>Código</th><th>Producto</th><th>Rotación</th><th>Stock</th></tr></thead>
+      <tbody id="hist-sin-venta"></tbody>
+    </table>
+
+    <h3 class="sub-titulo">🗄️ Aperturas de caja</h3>
+    <table class="tabla-datos">
+      <thead><tr><th>Fecha</th><th>Cajero</th><th>Monto apertura</th></tr></thead>
+      <tbody id="hist-aperturas"></tbody>
+    </table>
+
+    <h3 class="sub-titulo">🔒 Cierres de caja</h3>
+    <table class="tabla-datos">
+      <thead><tr><th>Fecha</th><th>Cajero</th><th>Esperado</th><th>Contado</th><th>Resultado</th></tr></thead>
+      <tbody id="hist-cierres"></tbody>
+    </table>
+  </div>
+
+  <!-- TAB ESTADÍSTICAS (solo admin) -->
+  <div class="tab-content" id="tab-estadisticas">
+    <div class="seccion-header">
+      <h2>📈 Estadísticas</h2>
+      <button id="btn-stats-pdf" class="btn btn-primary">📄 Exportar PDF</button>
+    </div>
+    <div class="toolbar">
+      <label class="filtro-fecha">Desde <input type="date" id="stats-desde"></label>
+      <label class="filtro-fecha">Hasta <input type="date" id="stats-hasta"></label>
+    </div>
+
+    <div class="grafico-grid">
+      <div class="card">
+        <h3 class="sub-titulo">🏆 Más vendidos</h3>
+        <div id="stats-mas-vendidos"></div>
+      </div>
+      <div class="card">
+        <h3 class="sub-titulo">🐢 Menos vendidos</h3>
+        <div id="stats-menos-vendidos"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="sub-titulo">📅 Ventas por día y proyección</h3>
+      <div id="stats-linea"></div>
+      <div id="stats-proyeccion" class="stat-grid"></div>
+      <p id="stats-proyeccion-aviso" class="alerta-stock hidden"></p>
+    </div>
+  </div>
+
+  <!-- TAB CONFIGURACIÓN (solo admin) -->
+  <div class="tab-content" id="tab-configuracion">
+    <div class="card card-narrow">
+      <h2>🖼️ Logo del negocio</h2>
+      <p class="hint">Se muestra en la pantalla de ingreso y en la barra superior.</p>
+      <img id="config-logo-preview" class="app-logo app-logo-preview hidden" alt="Logo actual">
+      <p id="config-logo-vacio" class="hint">Todavía no subiste un logo.</p>
+      <input type="file" id="input-logo" accept="image/*" class="hidden">
+      <div class="modal-botones modal-botones-left">
+        <button type="button" id="btn-subir-logo" class="btn btn-primary">📤 Subir logo</button>
+        <button type="button" id="btn-quitar-logo" class="btn btn-danger hidden">🗑️ Quitar logo</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="seccion-header">
+        <h2>👥 Usuarios y cajeros</h2>
+        <button id="btn-nuevo-usuario" class="btn btn-primary">➕ Nuevo usuario</button>
+      </div>
+      <table class="tabla-datos">
+        <thead><tr><th>Usuario</th><th>Rol</th><th>Estado</th><th></th></tr></thead>
+        <tbody id="usuarios-body"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>📊 Márgenes de ganancia por rotación</h2>
+      <p class="hint">Definen el precio de venta <strong>sugerido</strong> (referencial). El precio final siempre se asigna manualmente.</p>
+      <div class="fila-triple">
+        <div>
+          <label>Rotación A (%)</label>
+          <input type="number" id="margen-a" min="0" step="1">
+        </div>
+        <div>
+          <label>Rotación B (%)</label>
+          <input type="number" id="margen-b" min="0" step="1">
+        </div>
+        <div>
+          <label>Rotación C (%)</label>
+          <input type="number" id="margen-c" min="0" step="1">
+        </div>
+      </div>
+      <div class="modal-botones modal-botones-left">
+        <button type="button" id="btn-guardar-margenes" class="btn btn-primary">💾 Guardar márgenes</button>
+      </div>
+    </div>
+
+    <div class="config-doble">
+      <div class="card">
+        <h2>🏷️ Categorías</h2>
+        <div class="toolbar">
+          <input type="text" id="nueva-categoria" placeholder="Nueva categoría">
+          <button type="button" id="btn-agregar-categoria" class="btn btn-primary">➕ Agregar</button>
+        </div>
+        <ul id="lista-categorias-config" class="lista-chips"></ul>
+      </div>
+      <div class="card">
+        <h2>🚚 Proveedores</h2>
+        <div class="toolbar">
+          <input type="text" id="nuevo-proveedor" placeholder="Nuevo proveedor">
+          <button type="button" id="btn-agregar-proveedor" class="btn btn-primary">➕ Agregar</button>
+        </div>
+        <ul id="lista-proveedores-config" class="lista-chips"></ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>💾 Respaldo del inventario (Excel)</h2>
+      <p class="hint">Descarga una copia de todo el inventario en un archivo de Excel (CSV). Guárdalo en un lugar seguro; si pasa algo, puedes recuperarlo importándolo aquí.</p>
+      <div class="respaldo-info">
+        <strong id="respaldo-cantidad">0</strong> productos en el inventario actual.
+      </div>
+      <div class="modal-botones modal-botones-left">
+        <button type="button" id="btn-respaldo-descargar" class="btn btn-primary">📤 Descargar respaldo</button>
+        <button type="button" id="btn-respaldo-importar" class="btn">📥 Recuperar desde archivo</button>
+        <input type="file" id="input-respaldo" accept=".csv" class="hidden">
+      </div>
+      <p class="hint">Al recuperar: los productos con el mismo código se <strong>actualizan</strong> y los nuevos se <strong>agregan</strong> (no borra los existentes).</p>
+    </div>
+
+    <div class="card card-peligro">
+      <h2>⚠️ Zona de peligro</h2>
+      <p class="hint">Restablecer el sistema borra <strong>todos</strong> los datos: productos, ventas, compras, caja, movimientos, usuarios (excepto el admin por defecto) y ajustes. Esta acción <strong>no se puede deshacer</strong>.</p>
+      <div class="modal-botones modal-botones-left">
+        <button type="button" id="btn-abrir-reset" class="btn btn-danger-solido">🗑️ Restablecer todo el sistema</button>
+      </div>
+    </div>
+  </div>
+    </div><!-- /area-tabs -->
+  </div><!-- /contenido-principal -->
+</section>
+
+<!-- MODAL NUEVO USUARIO -->
+<div id="modal-usuario" class="modal hidden">
+  <div class="modal-content card-narrow">
+    <h2>➕ Nuevo usuario</h2>
+    <form id="form-usuario">
+      <label>Usuario</label>
+      <input type="text" id="nuevo-usuario-username" required>
+      <label>Rol</label>
+      <select id="nuevo-usuario-rol">
+        <option value="cajero">Cajero</option>
+        <option value="admin">Admin</option>
+      </select>
+      <p class="hint">Definirá su propia contraseña en su primer ingreso, igual que hiciste tú.</p>
+      <div class="modal-botones">
+        <button type="button" id="btn-cerrar-modal-usuario" class="btn">✖️ Cancelar</button>
+        <button type="submit" class="btn btn-primary">💾 Crear</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL PRODUCTO (crear/editar) -->
+<div id="modal-producto" class="modal hidden">
+  <div class="modal-content">
+    <h2 id="modal-producto-titulo">Nuevo producto</h2>
+    <form id="form-producto">
+      <input type="hidden" id="prod-id">
+      <label>Nombre</label>
+      <input type="text" id="prod-nombre" required>
+      <label>Código de barras</label>
+      <input type="text" id="prod-codigo" required>
+      <label>Categoría</label>
+      <select id="prod-categoria" required></select>
+      <input type="text" id="prod-categoria-nueva" class="hidden campo-nuevo" placeholder="Nombre de la nueva categoría">
+      <label>Categoría de rotación</label>
+      <select id="prod-rotacion">
+        <option value="A">A</option>
+        <option value="B">B</option>
+        <option value="C">C</option>
+      </select>
+      <label>Proveedor</label>
+      <select id="prod-proveedor"></select>
+      <input type="text" id="prod-proveedor-nuevo" class="hidden campo-nuevo" placeholder="Nombre del nuevo proveedor">
+      <label>Stock inicial</label>
+      <input type="number" id="prod-stock" min="0" step="1" required>
+      <label>Stock mínimo</label>
+      <input type="number" id="prod-stock-minimo" min="0" step="1" value="5" required>
+      <label>Precio de compra (Bs)</label>
+      <input type="number" id="prod-precio-compra" min="0" step="0.01" required>
+      <label>Precio de venta final (Bs) — dejar vacío si aún no se asigna</label>
+      <input type="number" id="prod-precio-venta" min="0" step="0.01">
+      <p class="hint">💡 Precio sugerido según categoría de rotación: <strong id="prod-precio-sugerido">—</strong></p>
+      <div class="modal-botones">
+        <button type="button" id="btn-cerrar-modal-producto" class="btn">✖️ Cancelar</button>
+        <button type="submit" class="btn btn-primary">💾 Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL VENTA: cobro efectivo -->
+<div id="modal-efectivo" class="modal hidden">
+  <div class="modal-content card-narrow">
+    <h2>💵 Cobro en efectivo</h2>
+    <div class="linea-monto"><span>Total a cobrar</span><strong id="efectivo-total" class="monto-grande">Bs 0.00</strong></div>
+    <button type="button" id="btn-pago-exacto" class="btn btn-primary btn-lg btn-pago-exacto">⚡ Pago exacto (sin cambio) · <kbd>Espacio</kbd></button>
+    <label>O ingresa el monto recibido (Bs)</label>
+    <input type="number" id="efectivo-recibido" step="0.5" min="0" class="input-xl" autofocus>
+    <div class="linea-monto"><span>Cambio</span><strong id="efectivo-cambio" class="monto-grande">Bs 0.00</strong></div>
+    <p id="efectivo-error" class="error hidden"></p>
+    <div class="atajos atajos-modal">
+      <span class="atajo"><kbd>Espacio</kbd> Pago exacto</span>
+      <span class="atajo"><kbd>Enter</kbd> Confirmar cobro</span>
+      <span class="atajo"><kbd>Esc</kbd> Cerrar</span>
+    </div>
+    <div class="modal-botones">
+      <button type="button" id="btn-cerrar-modal-efectivo" class="btn">✖️ Cancelar</button>
+      <button type="button" id="btn-confirmar-efectivo" class="btn btn-primary">✅ Confirmar cobro</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CIERRE DE CAJA -->
+<div id="modal-cierre" class="modal hidden">
+  <div class="modal-content card-narrow">
+    <h2>🔒 Cierre de Caja</h2>
+    <div id="cierre-resumen"></div>
+    <label>Conteo físico de efectivo (Bs)</label>
+    <input type="number" id="cierre-conteo" step="0.01" min="0" class="input-lg">
+    <div id="cierre-resultado" class="hidden"></div>
+    <div class="modal-botones">
+      <button type="button" id="btn-cerrar-modal-cierre" class="btn">✖️ Cancelar</button>
+      <button type="button" id="btn-confirmar-cierre" class="btn btn-primary">🔒 Confirmar cierre y salir</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RESTABLECER SISTEMA -->
+<div id="modal-reset" class="modal hidden">
+  <div class="modal-content card-narrow">
+    <h2>⚠️ Restablecer todo el sistema</h2>
+    <div class="reset-alerta">
+      Vas a <strong>borrar TODOS los datos</strong>: productos, ventas, compras, caja, movimientos, usuarios y ajustes. <strong>No se puede deshacer.</strong>
+    </div>
+    <p class="hint">Antes de continuar, descarga un respaldo de tu inventario por si lo necesitas.</p>
+    <button type="button" id="btn-reset-respaldo" class="btn">📤 Descargar respaldo ahora</button>
+
+    <label style="margin-top:1rem">Escribe <strong>BORRAR</strong> para confirmar</label>
+    <input type="text" id="reset-confirmacion" autocomplete="off" placeholder="BORRAR">
+    <label>Contraseña del administrador</label>
+    <input type="password" id="reset-password" autocomplete="current-password">
+    <p id="reset-error" class="error hidden"></p>
+
+    <div class="modal-botones">
+      <button type="button" id="btn-cerrar-modal-reset" class="btn">✖️ Cancelar</button>
+      <button type="button" id="btn-confirmar-reset" class="btn btn-danger-solido">🗑️ Borrar todo definitivamente</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/app.js"></script>
+<script>
+  // Registro del service worker (PWA instalable + offline).
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW no registrado:', err));
+    });
+  }
+</script>
+</body>
+</html>

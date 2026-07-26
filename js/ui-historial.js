@@ -1,0 +1,107 @@
+import {
+  rankingProductos, productosSinVenta, resumenVentas,
+  aperturasEnRango, cierresEnRango,
+} from './reportes.js';
+import { exportarReportePDF, tablaHTML, kpisHTML } from './pdf.js';
+
+const el = id => document.getElementById(id);
+const money = n => `Bs ${Number(n).toFixed(2)}`;
+const fechaHora = iso => new Date(iso).toLocaleString('es-BO');
+const soloFecha = iso => new Date(iso).toLocaleDateString('es-BO');
+
+function rangoActual() {
+  return { desde: el('hist-desde').value, hasta: el('hist-hasta').value };
+}
+
+function etiquetaRango() {
+  const { desde, hasta } = rangoActual();
+  if (!desde && !hasta) return 'Todo el histórico';
+  return `${desde || 'inicio'} → ${hasta || 'hoy'}`;
+}
+
+function render() {
+  const rango = rangoActual();
+  const resumen = resumenVentas(rango);
+  const ranking = rankingProductos(rango);
+  const sinVenta = productosSinVenta(rango);
+  const aperturas = aperturasEnRango(rango);
+  const cierres = cierresEnRango(rango);
+
+  el('hist-kpis').innerHTML = `
+    <div class="stat-tile"><span class="stat-icono">🧾</span><div><div class="stat-valor">${resumen.cantidadVentas}</div><div class="stat-label">Ventas</div></div></div>
+    <div class="stat-tile"><span class="stat-icono">💰</span><div><div class="stat-valor">${money(resumen.totalVendido)}</div><div class="stat-label">Total vendido</div></div></div>
+    <div class="stat-tile"><span class="stat-icono">💵</span><div><div class="stat-valor">${money(resumen.efectivo)}</div><div class="stat-label">Efectivo</div></div></div>
+    <div class="stat-tile"><span class="stat-icono">📱</span><div><div class="stat-valor">${money(resumen.qr)}</div><div class="stat-label">QR</div></div></div>
+    <div class="stat-tile"><span class="stat-icono">🎫</span><div><div class="stat-valor">${money(resumen.ticketPromedio)}</div><div class="stat-label">Ticket promedio</div></div></div>
+  `;
+
+  el('hist-ranking').innerHTML = ranking.length
+    ? ranking.map((p, i) => `<tr><td>${i + 1}</td><td>${p.nombre}</td><td>${p.cantidad}</td><td>${money(p.monto)}</td></tr>`).join('')
+    : '<tr><td colspan="4" class="hint">Sin ventas en el rango.</td></tr>';
+
+  el('hist-sin-venta').innerHTML = sinVenta.length
+    ? sinVenta.map(p => `<tr><td>${p.codigo}</td><td>${p.nombre}</td><td>${p.categoriaRotacion}</td><td>${p.stock}</td></tr>`).join('')
+    : '<tr><td colspan="4" class="hint">Todos los productos tuvieron ventas.</td></tr>';
+
+  el('hist-aperturas').innerHTML = aperturas.length
+    ? aperturas.map(a => `<tr><td>${fechaHora(a.fecha)}</td><td>${a.cajero}</td><td>${money(a.montoApertura)}</td></tr>`).join('')
+    : '<tr><td colspan="3" class="hint">Sin aperturas en el rango.</td></tr>';
+
+  el('hist-cierres').innerHTML = cierres.length
+    ? cierres.map(c => {
+        const dif = c.diferencia === 0
+          ? '<span class="chip chip-ok">Cuadra</span>'
+          : c.diferencia > 0
+            ? `<span class="chip chip-info">Sobrante ${money(c.diferencia)}</span>`
+            : `<span class="chip chip-alerta">Faltante ${money(Math.abs(c.diferencia))}</span>`;
+        return `<tr><td>${fechaHora(c.fecha)}</td><td>${c.cajero}</td><td>${money(c.efectivoEsperado)}</td><td>${money(c.efectivoContado)}</td><td>${dif}</td></tr>`;
+      }).join('')
+    : '<tr><td colspan="5" class="hint">Sin cierres en el rango.</td></tr>';
+}
+
+function exportarPDF() {
+  const rango = rangoActual();
+  const resumen = resumenVentas(rango);
+  const ranking = rankingProductos(rango);
+  const sinVenta = productosSinVenta(rango);
+  const aperturas = aperturasEnRango(rango);
+  const cierres = cierresEnRango(rango);
+
+  const cuerpo = `
+    ${kpisHTML([
+      { valor: resumen.cantidadVentas, etiqueta: 'Ventas' },
+      { valor: money(resumen.totalVendido), etiqueta: 'Total vendido' },
+      { valor: money(resumen.efectivo), etiqueta: 'Efectivo' },
+      { valor: money(resumen.qr), etiqueta: 'QR' },
+      { valor: money(resumen.ticketPromedio), etiqueta: 'Ticket promedio' },
+    ])}
+    <h2>Productos vendidos (mayor a menor)</h2>
+    ${tablaHTML(['#', 'Producto', 'Cantidad', 'Monto'],
+      ranking.map((p, i) => [i + 1, p.nombre, p.cantidad, money(p.monto)]))}
+    <h2>Productos sin venta / baja rotación</h2>
+    ${tablaHTML(['Código', 'Producto', 'Rotación', 'Stock'],
+      sinVenta.map(p => [p.codigo, p.nombre, p.categoriaRotacion, p.stock]))}
+    <h2>Aperturas de caja</h2>
+    ${tablaHTML(['Fecha', 'Cajero', 'Monto apertura'],
+      aperturas.map(a => [fechaHora(a.fecha), a.cajero, money(a.montoApertura)]))}
+    <h2>Cierres de caja</h2>
+    ${tablaHTML(['Fecha', 'Cajero', 'Esperado', 'Contado', 'Diferencia'],
+      cierres.map(c => [fechaHora(c.fecha), c.cajero, money(c.efectivoEsperado), money(c.efectivoContado),
+        c.diferencia === 0 ? 'Cuadra' : c.diferencia > 0 ? `Sobrante ${money(c.diferencia)}` : `Faltante ${money(Math.abs(c.diferencia))}`]))}
+  `;
+
+  exportarReportePDF({
+    titulo: 'Reporte de Ventas e Historial',
+    subtitulo: `Período: ${etiquetaRango()}`,
+    cuerpoHTML: cuerpo,
+  });
+}
+
+export function initHistorial() {
+  el('hist-desde').addEventListener('input', render);
+  el('hist-hasta').addEventListener('input', render);
+  el('btn-hist-pdf').addEventListener('click', exportarPDF);
+  render();
+}
+
+export { render as refrescarHistorial };

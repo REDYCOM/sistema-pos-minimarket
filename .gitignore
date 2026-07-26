@@ -1,0 +1,6 @@
+# Archivos de desarrollo local (no necesarios en la publicación)
+server.ps1
+
+# Sistema
+Thumbs.db
+.DS_Store
