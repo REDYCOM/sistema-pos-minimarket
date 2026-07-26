@@ -8,7 +8,7 @@ import { toast } from './toast.js';
 import { confirmar, abrirModal, cerrarModal } from './modal.js';
 import { db, getSession, resetearTodo } from './storage.js';
 import { verifyPassword } from './crypto.js';
-import { exportarInventarioCSV, importarInventarioCSV } from './backup.js';
+import { exportarInventarioExcel, importarInventarioExcel } from './backup.js';
 
 const el = id => document.getElementById(id);
 
@@ -176,11 +176,11 @@ export function initConfiguracion() {
     if (btn) { eliminarProveedor(btn.dataset.valor); renderCatalogos(); }
   });
 
-  // Respaldo de inventario (Excel/CSV)
-  el('btn-respaldo-descargar').addEventListener('click', exportarInventarioCSV);
+  // Respaldo de inventario (Excel .xlsx)
+  el('btn-respaldo-descargar').addEventListener('click', exportarInventarioExcel);
   el('btn-respaldo-importar').addEventListener('click', () => el('input-respaldo').click());
   el('input-respaldo').addEventListener('change', e => {
-    if (e.target.files[0]) importarInventarioCSV(e.target.files[0], renderRespaldo);
+    if (e.target.files[0]) importarInventarioExcel(e.target.files[0], renderRespaldo);
     e.target.value = '';
   });
 
@@ -192,7 +192,7 @@ export function initConfiguracion() {
     abrirModal(el('modal-reset'));
   });
   el('btn-cerrar-modal-reset').addEventListener('click', () => cerrarModal(el('modal-reset')));
-  el('btn-reset-respaldo').addEventListener('click', exportarInventarioCSV);
+  el('btn-reset-respaldo').addEventListener('click', exportarInventarioExcel);
   el('btn-confirmar-reset').addEventListener('click', ejecutarReset);
 
   renderPreview();

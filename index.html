@@ -85,6 +85,7 @@
     </div>
     <nav class="tabs" id="main-tabs">
       <button class="tab-btn active" data-tab="venta">🛒 <span>Venta</span></button>
+      <button class="tab-btn" data-tab="avisos">🔔 <span>Avisos</span><span class="tab-badge hidden" id="avisos-badge">0</span></button>
       <button class="tab-btn" data-tab="inventario">📦 <span>Inventario</span></button>
       <button class="tab-btn" data-tab="productos">🏷️ <span>Productos</span></button>
       <button class="tab-btn" data-tab="dinero">💵 <span>Entrada/Salida</span></button>
@@ -108,7 +109,11 @@
 
     <div class="area-tabs">
 
-    <div id="avisos-bar" class="avisos-bar hidden"></div>
+  <!-- TAB AVISOS / NOTIFICACIONES -->
+  <div class="tab-content" id="tab-avisos">
+    <div class="seccion-header"><h2>🔔 Avisos y notificaciones</h2></div>
+    <div id="avisos-lista"></div>
+  </div>
 
   <!-- TAB VENTA -->
   <div class="tab-content active" id="tab-venta">
@@ -161,9 +166,9 @@
         <option value="bajo">Stock bajo</option>
         <option value="alto">Stock alto</option>
       </select>
-      <button id="btn-importar-excel" class="btn">📥 Importar (CSV)</button>
-      <input type="file" id="input-importar-excel" accept=".csv" class="hidden">
-      <button id="btn-exportar-excel" class="btn">📤 Exportar (CSV)</button>
+      <button id="btn-importar-excel" class="btn">📥 Importar (Excel)</button>
+      <input type="file" id="input-importar-excel" accept=".xlsx,.xls" class="hidden">
+      <button id="btn-exportar-excel" class="btn">📤 Exportar (Excel)</button>
     </div>
     <div id="stock-bajo-lista" class="alerta-stock hidden"></div>
     <table class="tabla-datos">
@@ -503,14 +508,14 @@
 
     <div class="card">
       <h2>💾 Respaldo del inventario (Excel)</h2>
-      <p class="hint">Descarga una copia de todo el inventario en un archivo de Excel (CSV). Guárdalo en un lugar seguro; si pasa algo, puedes recuperarlo importándolo aquí.</p>
+      <p class="hint">Descarga una copia de todo el inventario en un archivo de Excel (.xlsx), con filas y columnas fáciles de rellenar. Guárdalo en un lugar seguro; si pasa algo, puedes recuperarlo importándolo aquí.</p>
       <div class="respaldo-info">
         <strong id="respaldo-cantidad">0</strong> productos en el inventario actual.
       </div>
       <div class="modal-botones modal-botones-left">
         <button type="button" id="btn-respaldo-descargar" class="btn btn-primary">📤 Descargar respaldo</button>
         <button type="button" id="btn-respaldo-importar" class="btn">📥 Recuperar desde archivo</button>
-        <input type="file" id="input-respaldo" accept=".csv" class="hidden">
+        <input type="file" id="input-respaldo" accept=".xlsx,.xls" class="hidden">
       </div>
       <p class="hint">Al recuperar: los productos con el mismo código se <strong>actualizan</strong> y los nuevos se <strong>agregan</strong> (no borra los existentes).</p>
     </div>

@@ -134,9 +134,16 @@ function cerrarSidebarMovil() {
 }
 
 function initSidebar() {
+  const esMovil = () => window.matchMedia('(max-width: 860px)').matches;
   el('btn-toggle-sidebar').addEventListener('click', () => {
-    el('sidebar').classList.toggle('abierto');
-    el('sidebar-overlay').classList.toggle('activo');
+    if (esMovil()) {
+      // Móvil: la barra se desliza sobre el contenido con overlay.
+      el('sidebar').classList.toggle('abierto');
+      el('sidebar-overlay').classList.toggle('activo');
+    } else {
+      // Escritorio: la barra se colapsa y el contenido ocupa toda la pantalla.
+      el('view-dashboard').classList.toggle('colapsado');
+    }
   });
   el('sidebar-overlay').addEventListener('click', cerrarSidebarMovil);
 }

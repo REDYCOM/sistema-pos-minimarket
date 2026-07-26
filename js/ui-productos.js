@@ -5,7 +5,7 @@ import {
 } from './productos.js';
 import { actualizarAlertaStockBajo } from './ui-dashboard.js';
 import { listarCategorias, listarProveedores, poblarSelectCatalogo, resolverValorCatalogo, vincularSelectNuevo } from './catalogo.js';
-import { exportarInventarioCSV, importarInventarioCSV } from './backup.js';
+import { exportarInventarioExcel, importarInventarioExcel } from './backup.js';
 import { refrescarAvisos } from './avisos.js';
 import { toast } from './toast.js';
 import { abrirModal, cerrarModal, confirmar } from './modal.js';
@@ -131,10 +131,10 @@ export function initProductosInventario() {
   el('inv-filtro-categoria').addEventListener('change', renderInventario);
   el('inv-filtro-stock').addEventListener('change', renderInventario);
 
-  el('btn-exportar-excel').addEventListener('click', exportarInventarioCSV);
+  el('btn-exportar-excel').addEventListener('click', exportarInventarioExcel);
   el('btn-importar-excel').addEventListener('click', () => el('input-importar-excel').click());
   el('input-importar-excel').addEventListener('change', e => {
-    if (e.target.files[0]) importarInventarioCSV(e.target.files[0], renderTodo);
+    if (e.target.files[0]) importarInventarioExcel(e.target.files[0], renderTodo);
     e.target.value = '';
   });
 
