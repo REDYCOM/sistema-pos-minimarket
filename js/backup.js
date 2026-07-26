@@ -27,7 +27,7 @@ export async function exportarInventarioExcel() {
   try {
     const XLSX = await ensureXLSX();
     const filas = db.productos.all().map(p => ({
-      'Código de barras': p.codigo ?? '',
+      'Código de barras': p.codigo == null ? '' : String(p.codigo),
       'Nombre': p.nombre ?? '',
       'Categoría': p.categoria ?? '',
       'Rotación (A/B/C)': p.categoriaRotacion ?? '',
@@ -38,6 +38,20 @@ export async function exportarInventarioExcel() {
       'Precio venta': (p.precioVentaFinal === null || p.precioVentaFinal === undefined || p.precioVentaFinal === '') ? '' : Number(p.precioVentaFinal),
     }));
     const ws = XLSX.utils.json_to_sheet(filas, { header: ENCABEZADOS });
+
+    // La columna A ("Código de barras") se marca como TEXTO para que Excel
+    // conserve los ceros a la izquierda (ej. 01654656) y no los borre. Se
+    // preformatean filas extra para que también respete lo que se escriba nuevo.
+    const FILAS_EXTRA = 300;
+    const rango = XLSX.utils.decode_range(ws['!ref']);
+    rango.e.r = Math.max(rango.e.r, filas.length + FILAS_EXTRA);
+    for (let r = 1; r <= rango.e.r; r++) { // r=0 es el encabezado
+      const ref = XLSX.utils.encode_cell({ c: 0, r });
+      const celda = ws[ref] || (ws[ref] = { t: 's', v: '' });
+      celda.t = 's';   // tipo texto
+      celda.z = '@';   // formato de celda: texto
+    }
+    ws['!ref'] = XLSX.utils.encode_range(rango);
     ws['!cols'] = ENCABEZADOS.map(h => ({ wch: Math.max(12, h.length + 2) }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Inventario');
