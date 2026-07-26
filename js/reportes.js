@@ -56,6 +56,22 @@ export function resumenVentas({ desde, hasta } = {}) {
   };
 }
 
+// Ventas agrupadas por cajero (quién vendió y cuánto en el período).
+export function ventasPorCajero({ desde, hasta } = {}) {
+  const ventas = ventasEnRango({ desde, hasta });
+  const porCajero = new Map();
+  ventas.forEach(v => {
+    const c = v.cajero || '—';
+    const prev = porCajero.get(c) || { cajero: c, cantidad: 0, total: 0, efectivo: 0, qr: 0 };
+    prev.cantidad += 1;
+    prev.total += v.total;
+    if (v.metodoPago === 'efectivo') prev.efectivo += v.total;
+    else if (v.metodoPago === 'qr') prev.qr += v.total;
+    porCajero.set(c, prev);
+  });
+  return [...porCajero.values()].sort((a, b) => b.total - a.total);
+}
+
 // --- Aperturas y cierres del período ---
 export function aperturasEnRango({ desde, hasta } = {}) {
   return db.aperturas.all()

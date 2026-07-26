@@ -1,8 +1,9 @@
 import {
   rankingProductos, productosSinVenta, resumenVentas,
-  aperturasEnRango, cierresEnRango,
+  aperturasEnRango, cierresEnRango, ventasPorCajero,
 } from './reportes.js';
 import { exportarReportePDF, tablaHTML, kpisHTML } from './pdf.js';
+import { getSession } from './storage.js';
 
 const el = id => document.getElementById(id);
 const money = n => `Bs ${Number(n).toFixed(2)}`;
@@ -34,6 +35,11 @@ function render() {
     <div class="stat-tile"><span class="stat-icono">📱</span><div><div class="stat-valor">${money(resumen.qr)}</div><div class="stat-label">QR</div></div></div>
     <div class="stat-tile"><span class="stat-icono">🎫</span><div><div class="stat-valor">${money(resumen.ticketPromedio)}</div><div class="stat-label">Ticket promedio</div></div></div>
   `;
+
+  const porCajero = ventasPorCajero(rango);
+  el('hist-cajeros').innerHTML = porCajero.length
+    ? porCajero.map(c => `<tr><td>${c.cajero}</td><td>${c.cantidad}</td><td>${money(c.efectivo)}</td><td>${money(c.qr)}</td><td>${money(c.total)}</td></tr>`).join('')
+    : '<tr><td colspan="5" class="hint">Sin ventas en el rango.</td></tr>';
 
   el('hist-ranking').innerHTML = ranking.length
     ? ranking.map((p, i) => `<tr><td>${i + 1}</td><td>${p.nombre}</td><td>${p.cantidad}</td><td>${money(p.monto)}</td></tr>`).join('')
@@ -67,6 +73,8 @@ function exportarPDF() {
   const aperturas = aperturasEnRango(rango);
   const cierres = cierresEnRango(rango);
 
+  const porCajero = ventasPorCajero(rango);
+
   const cuerpo = `
     ${kpisHTML([
       { valor: resumen.cantidadVentas, etiqueta: 'Ventas' },
@@ -75,6 +83,9 @@ function exportarPDF() {
       { valor: money(resumen.qr), etiqueta: 'QR' },
       { valor: money(resumen.ticketPromedio), etiqueta: 'Ticket promedio' },
     ])}
+    <h2>Ventas por cajero</h2>
+    ${tablaHTML(['Cajero', 'Ventas', 'Efectivo', 'QR', 'Total'],
+      porCajero.map(c => [c.cajero, c.cantidad, money(c.efectivo), money(c.qr), money(c.total)]))}
     <h2>Productos vendidos (mayor a menor)</h2>
     ${tablaHTML(['#', 'Producto', 'Cantidad', 'Monto'],
       ranking.map((p, i) => [i + 1, p.nombre, p.cantidad, money(p.monto)]))}
@@ -90,9 +101,10 @@ function exportarPDF() {
         c.diferencia === 0 ? 'Cuadra' : c.diferencia > 0 ? `Sobrante ${money(c.diferencia)}` : `Faltante ${money(Math.abs(c.diferencia))}`]))}
   `;
 
+  const cajeroActual = getSession()?.username || '—';
   exportarReportePDF({
     titulo: 'Reporte de Ventas e Historial',
-    subtitulo: `Período: ${etiquetaRango()}`,
+    subtitulo: `Período: ${etiquetaRango()} · Generado por: ${cajeroActual}`,
     cuerpoHTML: cuerpo,
   });
 }
