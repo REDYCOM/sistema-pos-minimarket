@@ -167,8 +167,11 @@ export function initProductosInventario() {
       const ok = await confirmar(`¿Eliminar el producto "${prod?.nombre || ''}"?`, { aceptar: 'Sí, eliminar', peligro: true });
       if (ok) {
         eliminarProducto(eliminarBtn.dataset.id);
+        // Limpiar el buscador y dejar el cursor listo para escribir el siguiente.
+        el('prod-buscar').value = '';
         renderTodo();
         toast.info('🗑️ Producto eliminado.');
+        el('prod-buscar').focus();
       }
     }
   });
@@ -192,8 +195,11 @@ export function initProductosInventario() {
     if (id) actualizarProducto(id, datos);
     else crearProducto(datos);
     cerrarModal(el('modal-producto'));
+    // Limpiar el buscador y dejar el cursor listo para escribir el siguiente.
+    el('prod-buscar').value = '';
     renderTodo();
     toast.success('✅ Actualizado satisfactoriamente.');
+    el('prod-buscar').focus();
   });
 
   renderTodo();
