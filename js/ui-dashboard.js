@@ -18,7 +18,11 @@ function money(n) {
 function renderCarrito() {
   const body = el('carrito-body');
   body.innerHTML = '';
-  carrito.forEach((item, idx) => {
+  // Se recorre del último al primero para que el producto recién agregado
+  // aparezca ARRIBA. El data-idx conserva la posición real en el arreglo, así
+  // que quitar/editar cantidad siguen funcionando igual.
+  for (let idx = carrito.length - 1; idx >= 0; idx--) {
+    const item = carrito[idx];
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${item.nombre}</td>
@@ -28,7 +32,7 @@ function renderCarrito() {
       <td><button class="icono-btn quitar-item" data-idx="${idx}" title="Quitar">✕</button></td>
     `;
     body.appendChild(tr);
-  });
+  }
   renderResumen();
 }
 

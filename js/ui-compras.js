@@ -23,15 +23,17 @@ function renderItems() {
   if (items.length === 0) {
     body.innerHTML = '<tr><td colspan="5" class="hint">Aún no agregaste productos a esta compra.</td></tr>';
   } else {
+    // .reverse() muestra el último ítem agregado ARRIBA. El data-idx conserva la
+    // posición real en el arreglo, así que quitar y editar siguen apuntando bien.
     body.innerHTML = items.map((it, idx) => `
       <tr>
         <td>${it.nombre} ${it.productoId ? '' : '<span class="chip chip-info">nuevo</span>'}</td>
-        <td>${it.cantidad}</td>
-        <td>${money(it.costoUnit)}</td>
+        <td><input type="number" min="1" step="1" value="${it.cantidad}" data-idx="${idx}" class="compra-cant-input bloque-cant" title="Editar cantidad"></td>
+        <td><input type="number" min="0" step="0.01" value="${it.costoUnit}" data-idx="${idx}" class="compra-costo-input bloque-cant" title="Editar costo"></td>
         <td>${money(it.cantidad * it.costoUnit)}</td>
         <td><button class="icono-btn quitar-item-compra" data-idx="${idx}" title="Quitar">✕</button></td>
       </tr>
-    `).join('');
+    `).reverse().join('');
   }
   el('compra-total-actual').textContent = money(totalDeItems(items));
 }
@@ -220,6 +222,34 @@ export function initCompras() {
     const btn = e.target.closest('.quitar-item-compra');
     if (!btn) return;
     items.splice(Number(btn.dataset.idx), 1);
+    renderItems();
+  });
+
+  // Edición en línea de cantidad y costo (por si te equivocas al agregar). Mientras
+  // escribes solo se recalcula el subtotal de la fila y el total, sin reconstruir la
+  // tabla, para no perder el foco del campo.
+  el('compra-items-body').addEventListener('input', e => {
+    const esCant = e.target.classList.contains('compra-cant-input');
+    const esCosto = e.target.classList.contains('compra-costo-input');
+    if (!esCant && !esCosto) return;
+    const it = items[Number(e.target.dataset.idx)];
+    if (!it) return;
+    if (esCant) it.cantidad = Number(e.target.value);
+    else it.costoUnit = Number(e.target.value);
+    const fila = e.target.closest('tr');
+    fila.children[3].textContent = money((Number(it.cantidad) || 0) * (Number(it.costoUnit) || 0));
+    el('compra-total-actual').textContent = money(totalDeItems(items));
+  });
+
+  // Al salir del campo se normaliza: cantidad mínima 1 y costo mínimo 0.
+  el('compra-items-body').addEventListener('change', e => {
+    const esCant = e.target.classList.contains('compra-cant-input');
+    const esCosto = e.target.classList.contains('compra-costo-input');
+    if (!esCant && !esCosto) return;
+    const it = items[Number(e.target.dataset.idx)];
+    if (!it) return;
+    if (esCant && !(Number(it.cantidad) >= 1)) it.cantidad = 1;
+    if (esCosto && !(Number(it.costoUnit) >= 0)) it.costoUnit = 0;
     renderItems();
   });
 
