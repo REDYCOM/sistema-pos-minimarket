@@ -6,6 +6,7 @@ import { clearSession, getSession } from './storage.js';
 import { toast } from './toast.js';
 import { abrirModal, cerrarModal, confirmar } from './modal.js';
 import { refrescarAvisos } from './avisos.js';
+import { seleccionarAlEnfocar } from './util.js';
 
 let carrito = [];
 
@@ -240,6 +241,7 @@ export function initDashboard() {
 
   el('descuento-monto').addEventListener('input', renderResumen);
   el('descuento-tipo').addEventListener('change', renderResumen);
+  seleccionarAlEnfocar(el('descuento-monto'));
   // Al terminar de escribir, si el descuento es en Bs, se redondea a múltiplos de 0.50.
   el('descuento-monto').addEventListener('change', () => {
     if (el('descuento-tipo').value === 'monto') {

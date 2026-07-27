@@ -7,6 +7,7 @@ import { abrirCalculadora } from './calculadora-costo.js';
 import { exportarReportePDF, tablaHTML, kpisHTML } from './pdf.js';
 import { toast } from './toast.js';
 import { abrirModal, cerrarModal, confirmar } from './modal.js';
+import { seleccionarAlEnfocar } from './util.js';
 
 const el = id => document.getElementById(id);
 const money = n => `Bs ${Number(n).toFixed(2)}`;
@@ -203,6 +204,7 @@ export function initCompras() {
   });
   el('btn-registrar-compra').addEventListener('click', registrar);
   el('compra-descuento').addEventListener('input', renderTotales);
+  seleccionarAlEnfocar(el('compra-descuento'));
 
   vincularSelectNuevo(el('compra-proveedor'), el('compra-proveedor-nuevo'));
   vincularSelectNuevo(el('item-nuevo-categoria'), el('item-nuevo-categoria-nueva'));
