@@ -24,10 +24,15 @@ export function registrarCompra({ proveedor, formaPago, items }) {
       // Producto existente: sube stock y actualiza el precio de compra al costo real.
       const producto = db.productos.find(productoId);
       if (producto) {
-        db.productos.update(productoId, {
+        const patch = {
           stock: producto.stock + Number(it.cantidad),
           precioCompra: Number(it.costoUnit),
-        });
+        };
+        // Si en la compra se indicó un precio de venta, se actualiza el del producto.
+        if (it.precioVenta !== '' && it.precioVenta !== null && it.precioVenta !== undefined && !Number.isNaN(Number(it.precioVenta))) {
+          patch.precioVentaFinal = Number(it.precioVenta);
+        }
+        db.productos.update(productoId, patch);
         nombre = producto.nombre;
       }
     } else {

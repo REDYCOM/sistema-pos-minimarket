@@ -210,6 +210,24 @@
         <button type="submit" class="btn btn-primary btn-lg">💾 Guardar</button>
       </form>
     </div>
+
+    <div class="card card-narrow">
+      <h2>🔄 Cambio de dinero (QR ↔ Efectivo)</h2>
+      <p class="hint">Registra cuando mueves dinero entre el efectivo de caja y el QR/banco. Ej.: sacas efectivo de la caja para depositarlo y pagar a un proveedor por QR.</p>
+      <form id="form-cambio-dinero">
+        <label>Dirección</label>
+        <select id="cambio-direccion" required>
+          <option value="efectivo-qr">💵 Efectivo → 📱 QR (depósito: sale de la caja)</option>
+          <option value="qr-efectivo">📱 QR → 💵 Efectivo (retiro: entra a la caja)</option>
+        </select>
+        <label>Monto (Bs)</label>
+        <input type="number" id="cambio-monto" step="0.01" min="0.01" required>
+        <label>Motivo (opcional)</label>
+        <input type="text" id="cambio-motivo" placeholder="Ej. Depósito para pagar a proveedor">
+        <button type="submit" class="btn btn-primary btn-lg">🔄 Registrar cambio</button>
+      </form>
+    </div>
+
     <h2>📜 Historial</h2>
     <div class="toolbar">
       <input type="date" id="dinero-filtro-fecha">
@@ -239,14 +257,20 @@
           </select>
         </div>
         <div class="compra-cabecera-accion">
-          <button type="button" id="btn-agregar-item-compra" class="btn btn-primary">➕ Agregar producto</button>
+          <button type="button" id="btn-agregar-item-compra" class="btn btn-primary">➕ Nuevo producto</button>
         </div>
       </div>
 
+      <label style="margin-top:1rem;display:block">Agregar producto existente</label>
+      <div class="venta-buscar">
+        <input type="text" id="compra-buscar" class="input-lg" placeholder="🔍 Escribe nombre o código y presiona Enter para agregarlo…" autocomplete="off">
+        <div id="compra-sugerencias" class="sugerencias hidden"></div>
+      </div>
+
       <table class="tabla-datos" style="margin-top:1rem">
-        <thead><tr><th>Producto</th><th>Cantidad</th><th>Costo unit.</th><th>Subtotal</th><th></th></tr></thead>
+        <thead><tr><th>Producto</th><th>Cantidad</th><th>P. Compra</th><th>P. Venta</th><th>Subtotal</th><th></th><th></th></tr></thead>
         <tbody id="compra-items-body">
-          <tr><td colspan="5" class="hint">Aún no agregaste productos a esta compra.</td></tr>
+          <tr><td colspan="7" class="hint">Aún no agregaste productos a esta compra.</td></tr>
         </tbody>
       </table>
 
@@ -279,25 +303,11 @@
   <!-- MODAL AGREGAR ÍTEM A LA COMPRA -->
   <div id="modal-item-compra" class="modal hidden">
     <div class="modal-content card-narrow">
-      <h2>➕ Agregar producto a la compra</h2>
-      <div class="segmento" id="item-modo-toggle">
-        <button type="button" class="segmento-btn active" data-modo="existente">Producto existente</button>
-        <button type="button" class="segmento-btn" data-modo="nuevo">Producto nuevo</button>
-      </div>
+      <h2>➕ Producto nuevo</h2>
+      <p class="hint">Para productos que aún no están en el inventario. Si el producto ya existe, usa el buscador de la compra.</p>
 
       <form id="form-item-compra">
-        <!-- Modo existente -->
-        <div id="item-existente">
-          <label>Buscar producto</label>
-          <div class="venta-buscar">
-            <input type="text" id="item-buscar" placeholder="Nombre o código..." autocomplete="off">
-            <div id="item-sugerencias" class="sugerencias hidden"></div>
-          </div>
-          <p id="item-existente-elegido" class="hint">Ningún producto seleccionado.</p>
-        </div>
-
-        <!-- Modo nuevo -->
-        <div id="item-nuevo" class="hidden">
+        <div id="item-nuevo">
           <label>Nombre</label>
           <input type="text" id="item-nuevo-nombre">
           <label>Código de barras</label>

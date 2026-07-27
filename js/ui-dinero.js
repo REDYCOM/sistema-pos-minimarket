@@ -41,6 +41,24 @@ export function initDinero() {
     toast.success(tipo === 'entrada' ? '⬆️ Entrada registrada.' : '⬇️ Salida registrada.');
   });
 
+  // Cambio de dinero QR ↔ Efectivo. Como el sistema solo concilia el efectivo de
+  // caja, un cambio se registra como movimiento de efectivo:
+  //   Efectivo → QR (depósito) = SALIDA de caja.
+  //   QR → Efectivo (retiro)   = ENTRADA a caja.
+  el('form-cambio-dinero').addEventListener('submit', e => {
+    e.preventDefault();
+    const direccion = el('cambio-direccion').value;
+    const monto = el('cambio-monto').value;
+    const motivoExtra = el('cambio-motivo').value.trim();
+    const tipo = direccion === 'efectivo-qr' ? 'salida' : 'entrada';
+    const etiqueta = direccion === 'efectivo-qr' ? 'Cambio: Efectivo → QR' : 'Cambio: QR → Efectivo';
+    const motivo = motivoExtra ? `${etiqueta} (${motivoExtra})` : etiqueta;
+    registrarMovimiento(tipo, monto, motivo);
+    e.target.reset();
+    renderHistorial();
+    toast.success('🔄 Cambio de dinero registrado.');
+  });
+
   el('dinero-filtro-fecha').addEventListener('input', renderHistorial);
   el('dinero-filtro-cajero').addEventListener('change', renderHistorial);
 
