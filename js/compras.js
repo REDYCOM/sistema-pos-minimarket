@@ -12,7 +12,7 @@ export function totalDeItems(items) {
   return items.reduce((sum, it) => sum + Number(it.cantidad) * Number(it.costoUnit), 0);
 }
 
-export function registrarCompra({ proveedor, formaPago, items }) {
+export function registrarCompra({ proveedor, formaPago, items, descuento = 0 }) {
   const session = getSession();
   const turno = turnoActivo();
 
@@ -60,7 +60,10 @@ export function registrarCompra({ proveedor, formaPago, items }) {
     };
   });
 
-  const total = totalDeItems(itemsNormalizados);
+  const subtotal = totalDeItems(itemsNormalizados);
+  // El descuento no puede superar el subtotal ni ser negativo.
+  const descuentoAplicado = Math.min(Math.max(0, Number(descuento) || 0), subtotal);
+  const total = subtotal - descuentoAplicado;
 
   const compra = {
     id: uid(),
@@ -69,6 +72,8 @@ export function registrarCompra({ proveedor, formaPago, items }) {
     cajero: session.username,
     turnoId: turno?.turnoId || null,
     items: itemsNormalizados,
+    subtotal,
+    descuento: descuentoAplicado,
     total,
     formaPago, // 'caja' | 'aparte'
   };

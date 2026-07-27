@@ -494,6 +494,11 @@ kbd {
 .compra-total-linea { display: flex; align-items: baseline; gap: 0.6rem; }
 .compra-total-linea span { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-muted); font-weight: 700; }
 .compra-total-linea strong { font-size: 1.5rem; font-family: var(--mono); color: var(--color-primary-dark); }
+.compra-totales { display: flex; flex-direction: column; gap: 0.35rem; }
+.compra-total-linea-sm { justify-content: space-between; }
+.compra-total-linea-sm strong { font-size: 1rem; color: var(--color-text); }
+.compra-total-linea-sm label { margin: 0; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-muted); font-weight: 700; }
+.compra-descuento-input { max-width: 130px; }
 
 .campo-nuevo { margin-top: 0.4rem; }
 .fila-doble { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }

@@ -35,7 +35,16 @@ function renderItems() {
       </tr>
     `).reverse().join('');
   }
-  el('compra-total-actual').textContent = money(totalDeItems(items));
+  renderTotales();
+}
+
+// Calcula subtotal, descuento (con tope al subtotal) y el total ya descontado.
+function renderTotales() {
+  const subtotal = totalDeItems(items);
+  const descuento = Math.min(Math.max(0, Number(el('compra-descuento').value) || 0), subtotal);
+  el('compra-subtotal-actual').textContent = money(subtotal);
+  el('compra-total-actual').textContent = money(subtotal - descuento);
+  return { subtotal, descuento, total: subtotal - descuento };
 }
 
 // Agrega un producto ya existente a la compra (desde el buscador en línea).
@@ -113,9 +122,11 @@ function registrar() {
   if (items.length === 0) return toast.warning('Agrega al menos un producto a la compra.');
 
   const formaPago = el('compra-forma-pago').value;
-  const compra = registrarCompra({ proveedor, formaPago, items });
+  const { descuento } = renderTotales();
+  const compra = registrarCompra({ proveedor, formaPago, items, descuento });
 
   items = [];
+  el('compra-descuento').value = 0;
   renderItems();
   poblarProveedores(); // repuebla e incluye el proveedor recién usado
   el('compra-proveedor-nuevo').value = '';
@@ -188,9 +199,10 @@ export function initCompras() {
   el('btn-cerrar-modal-item').addEventListener('click', () => cerrarModal(el('modal-item-compra')));
   el('btn-vaciar-compra').addEventListener('click', async () => {
     if (items.length === 0) return;
-    if (await confirmar('¿Vaciar la compra actual?', { aceptar: 'Sí, vaciar', peligro: true })) { items = []; renderItems(); }
+    if (await confirmar('¿Vaciar la compra actual?', { aceptar: 'Sí, vaciar', peligro: true })) { items = []; el('compra-descuento').value = 0; renderItems(); }
   });
   el('btn-registrar-compra').addEventListener('click', registrar);
+  el('compra-descuento').addEventListener('input', renderTotales);
 
   vincularSelectNuevo(el('compra-proveedor'), el('compra-proveedor-nuevo'));
   vincularSelectNuevo(el('item-nuevo-categoria'), el('item-nuevo-categoria-nueva'));
@@ -247,7 +259,7 @@ export function initCompras() {
     else return;
     const fila = t.closest('tr');
     fila.children[4].textContent = money((Number(it.cantidad) || 0) * (Number(it.costoUnit) || 0));
-    el('compra-total-actual').textContent = money(totalDeItems(items));
+    renderTotales();
   });
 
   // Al salir del campo se normaliza: cantidad mínima 1 y precio de compra mínimo 0.

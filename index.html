@@ -275,7 +275,14 @@
       </table>
 
       <div class="compra-pie">
-        <div class="compra-total-linea"><span>TOTAL COMPRA</span><strong id="compra-total-actual">Bs 0.00</strong></div>
+        <div class="compra-totales">
+          <div class="compra-total-linea compra-total-linea-sm"><span>Subtotal</span><strong id="compra-subtotal-actual">Bs 0.00</strong></div>
+          <div class="compra-total-linea compra-total-linea-sm">
+            <label for="compra-descuento">Descuento (Bs)</label>
+            <input type="number" id="compra-descuento" min="0" step="0.01" value="0" class="bloque-cant compra-descuento-input" title="Descuento sobre el total de la compra">
+          </div>
+          <div class="compra-total-linea"><span>TOTAL COMPRA</span><strong id="compra-total-actual">Bs 0.00</strong></div>
+        </div>
         <div class="modal-botones modal-botones-left">
           <button type="button" id="btn-vaciar-compra" class="btn">🗑️ Vaciar</button>
           <button type="button" id="btn-registrar-compra" class="btn btn-primary btn-lg">💾 Registrar compra</button>
