@@ -115,13 +115,28 @@ function resetVenta() {
 
 function abrirModalCierre() {
   const turno = turnoActivo();
-  const resumen = calcularEfectivoEsperado(turno.turnoId);
+  const r = calcularEfectivoEsperado(turno.turnoId);
   el('cierre-resumen').innerHTML = `
-    <p>Apertura: ${money(resumen.montoApertura)}</p>
-    <p>Ventas en efectivo: ${money(resumen.ventasEfectivo)}</p>
-    <p>Entradas de dinero: ${money(resumen.entradas)}</p>
-    <p>Salidas de dinero: ${money(resumen.salidas)}</p>
-    <p><strong>Efectivo esperado: ${money(resumen.esperado)}</strong></p>
+    <div class="cierre-bloque">
+      <h4>🛒 Ventas del turno</h4>
+      <div class="cierre-linea"><span>💵 Efectivo</span><strong>${money(r.ventasEfectivo)}</strong></div>
+      <div class="cierre-linea"><span>📱 QR</span><strong>${money(r.ventasQR)}</strong></div>
+      <div class="cierre-linea cierre-linea-total"><span>Total vendido</span><strong>${money(r.totalVendido)}</strong></div>
+    </div>
+    <div class="cierre-bloque">
+      <h4>🧾 Compras del turno</h4>
+      <div class="cierre-linea"><span>Pagadas de caja</span><strong>${money(r.comprasCaja)}</strong></div>
+      <div class="cierre-linea"><span>Pagadas aparte</span><strong>${money(r.comprasAparte)}</strong></div>
+      <p class="hint">Las pagadas de caja ya están incluidas en las salidas de abajo.</p>
+    </div>
+    <div class="cierre-bloque">
+      <h4>💵 Efectivo esperado en caja</h4>
+      <div class="cierre-linea"><span>Apertura</span><strong>${money(r.montoApertura)}</strong></div>
+      <div class="cierre-linea"><span>+ Ventas en efectivo</span><strong>${money(r.ventasEfectivo)}</strong></div>
+      <div class="cierre-linea"><span>+ Entradas de dinero</span><strong>${money(r.entradas)}</strong></div>
+      <div class="cierre-linea"><span>− Salidas de dinero</span><strong>${money(r.salidas)}</strong></div>
+      <div class="cierre-linea cierre-linea-total"><span>Efectivo esperado</span><strong>${money(r.esperado)}</strong></div>
+    </div>
   `;
   el('cierre-conteo').value = '';
   el('cierre-resultado').classList.add('hidden');

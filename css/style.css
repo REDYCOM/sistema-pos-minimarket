@@ -324,6 +324,22 @@ input.bloque-cant {
 input.bloque-cant::-webkit-inner-spin-button { opacity: 0.6; }
 .tabla-datos tbody tr:hover, .tabla-carrito tbody tr:hover { background: #fafbfc; }
 
+/* Carrito compacto: filas más chicas para ver más productos en una misma venta. */
+.tabla-carrito th, .tabla-carrito td { padding: 0.3rem 0.55rem; }
+.tabla-carrito td { font-size: 0.92rem; }
+.tabla-carrito .bloque { padding: 0.16rem 0.5rem; font-size: 0.88rem; border-radius: 8px; }
+.tabla-carrito input.bloque-cant { padding-top: 0.16rem; padding-bottom: 0.16rem; }
+.tabla-carrito input[type=number] { width: 3.5rem; }
+
+/* Resumen del cierre de caja (ventas efectivo/QR, total vendido, compras). */
+.cierre-bloque { margin-bottom: 0.9rem; }
+.cierre-bloque h4 { margin: 0 0 0.35rem; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-muted); font-weight: 700; }
+.cierre-bloque .hint { margin-top: 0.3rem; }
+.cierre-linea { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; padding: 0.16rem 0; }
+.cierre-linea strong { font-family: var(--mono); }
+.cierre-linea-total { border-top: 1px solid var(--color-border); margin-top: 0.3rem; padding-top: 0.45rem; }
+.cierre-linea-total strong { font-size: 1.15rem; color: var(--color-primary-dark); }
+
 .venta-resumen {
   background: var(--color-card);
   border-radius: 14px;
