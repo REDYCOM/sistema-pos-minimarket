@@ -7,6 +7,7 @@ import { initProductosInventario, refrescarProductosInventario } from './ui-prod
 import { initDinero, refrescarDinero } from './ui-dinero.js';
 import { initConfiguracion, aplicarLogoGuardado, refrescarConfiguracion } from './ui-configuracion.js';
 import { initCompras, refrescarCompras } from './ui-compras.js';
+import { initDevoluciones, refrescarDevoluciones } from './ui-devoluciones.js';
 import { initUsuarios, refrescarUsuarios } from './ui-usuarios.js';
 import { initHistorial, refrescarHistorial } from './ui-historial.js';
 import { initEstadisticas, refrescarEstadisticas } from './ui-estadisticas.js';
@@ -164,6 +165,8 @@ function initTabs() {
         refrescarDinero();
       } else if (btn.dataset.tab === 'compras') {
         refrescarCompras();
+      } else if (btn.dataset.tab === 'devoluciones') {
+        refrescarDevoluciones();
       } else if (btn.dataset.tab === 'historial') {
         refrescarHistorial();
       } else if (btn.dataset.tab === 'estadisticas') {
@@ -198,6 +201,7 @@ async function init() {
   initDinero();
   initConfiguracion();
   initCompras();
+  initDevoluciones();
   initUsuarios();
   initHistorial();
   initEstadisticas();

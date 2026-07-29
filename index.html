@@ -90,6 +90,7 @@
       <button class="tab-btn" data-tab="productos">🏷️ <span>Productos</span></button>
       <button class="tab-btn" data-tab="dinero">💵 <span>Entrada/Salida</span></button>
       <button class="tab-btn" data-tab="compras">🧾 <span>Compras</span></button>
+      <button class="tab-btn" data-tab="devoluciones">↩️ <span>Devoluciones</span></button>
       <button class="tab-btn hidden" data-tab="historial" id="tab-btn-historial">📊 <span>Ventas/Historial</span></button>
       <button class="tab-btn hidden" data-tab="estadisticas" id="tab-btn-estadisticas">📈 <span>Estadísticas</span></button>
       <button class="tab-btn hidden" data-tab="configuracion" id="tab-btn-configuracion">⚙️ <span>Configuración</span></button>
@@ -389,6 +390,61 @@
         <button type="button" id="btn-aplicar-calc" class="btn btn-primary">✅ Usar este costo</button>
       </div>
     </div>
+  </div>
+
+  <!-- TAB DEVOLUCIONES -->
+  <div class="tab-content" id="tab-devoluciones">
+    <div class="card">
+      <h2>↩️ Nueva devolución</h2>
+      <p class="hint">Los productos vuelven al inventario (sube el stock) y se le devuelve el dinero al cliente. Si el reembolso es en efectivo, se descuenta de la caja del turno.</p>
+      <div class="compra-cabecera">
+        <div>
+          <label for="devolucion-metodo">Reembolso</label>
+          <select id="devolucion-metodo">
+            <option value="efectivo">💵 Efectivo (sale de la caja)</option>
+            <option value="qr">📱 QR (no toca la caja)</option>
+          </select>
+        </div>
+        <div class="devolucion-motivo-campo">
+          <label for="devolucion-motivo">Motivo (opcional)</label>
+          <input type="text" id="devolucion-motivo" placeholder="Ej. Producto en mal estado">
+        </div>
+      </div>
+
+      <label style="margin-top:1rem;display:block">Agregar producto a devolver</label>
+      <div class="venta-buscar">
+        <input type="text" id="devolucion-buscar" class="input-lg" placeholder="🔍 Escribe nombre o código y presiona Enter para agregarlo…" autocomplete="off">
+        <div id="devolucion-sugerencias" class="sugerencias hidden"></div>
+      </div>
+
+      <table class="tabla-datos" style="margin-top:1rem">
+        <thead><tr><th>Producto</th><th>Cantidad</th><th>Precio devuelto</th><th>Subtotal</th><th></th></tr></thead>
+        <tbody id="devolucion-items-body">
+          <tr><td colspan="5" class="hint">Aún no agregaste productos a devolver.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="compra-pie">
+        <div class="compra-total-linea"><span>TOTAL A DEVOLVER</span><strong id="devolucion-total-actual">Bs 0.00</strong></div>
+        <div class="modal-botones modal-botones-left">
+          <button type="button" id="btn-vaciar-devolucion" class="btn">🗑️ Vaciar</button>
+          <button type="button" id="btn-registrar-devolucion" class="btn btn-primary btn-lg">↩️ Registrar devolución</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="seccion-header">
+      <h2>📜 Historial de devoluciones</h2>
+      <strong id="devoluciones-total">Total del período: Bs 0.00</strong>
+    </div>
+    <div class="toolbar">
+      <label class="filtro-fecha">Desde <input type="date" id="devolucion-filtro-fecha-desde"></label>
+      <label class="filtro-fecha">Hasta <input type="date" id="devolucion-filtro-fecha-hasta"></label>
+    </div>
+    <table class="tabla-datos">
+      <thead><tr><th>Fecha</th><th>Productos</th><th>Total</th><th>Reembolso</th><th>Motivo</th><th>Cajero</th></tr></thead>
+      <tbody id="devoluciones-body"></tbody>
+    </table>
   </div>
 
   <!-- TAB VENTAS / HISTORIAL (solo admin) -->

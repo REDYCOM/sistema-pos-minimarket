@@ -18,6 +18,7 @@ const NOMBRES_COLECCION = {
   cierres: 'cierres',
   movimientos: 'movimientos_dinero',
   compras: 'compras',
+  devoluciones: 'devoluciones',
 };
 
 export function uid() {
@@ -85,6 +86,7 @@ export const db = {
   cierres: crearColeccion(NOMBRES_COLECCION.cierres),
   movimientos: crearColeccion(NOMBRES_COLECCION.movimientos),
   compras: crearColeccion(NOMBRES_COLECCION.compras),
+  devoluciones: crearColeccion(NOMBRES_COLECCION.devoluciones),
 };
 
 // --- Ajustes del negocio (un solo documento sincronizado) ---
