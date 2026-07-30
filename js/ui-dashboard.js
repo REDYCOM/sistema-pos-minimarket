@@ -27,7 +27,7 @@ function renderCarrito() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${item.nombre}</td>
-      <td><input type="number" min="1" value="${item.cantidad}" data-idx="${idx}" class="cantidad-input bloque-cant"></td>
+      <td><input type="number" min="1" value="${item.cantidad}" data-idx="${idx}" class="cantidad-input bloque-cant rueda-numero"></td>
       <td><span class="bloque bloque-precio">${money(item.precioUnit)}</span></td>
       <td><span class="bloque bloque-total">${money(item.precioUnit * item.cantidad)}</span></td>
       <td><button class="icono-btn quitar-item" data-idx="${idx}" title="Quitar">✕</button></td>

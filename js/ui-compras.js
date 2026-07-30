@@ -28,7 +28,7 @@ function renderItems() {
     body.innerHTML = items.map((it, idx) => `
       <tr>
         <td>${it.nombre} ${it.productoId ? '' : '<span class="chip chip-info">nuevo</span>'}</td>
-        <td><input type="number" min="1" step="1" value="${it.cantidad}" data-idx="${idx}" class="compra-cant-input bloque-cant" title="Editar cantidad"></td>
+        <td><input type="number" min="1" step="1" value="${it.cantidad}" data-idx="${idx}" class="compra-cant-input bloque-cant rueda-numero" title="Editar cantidad"></td>
         <td><input type="number" min="0" step="0.01" value="${it.costoUnit}" data-idx="${idx}" class="compra-costo-input bloque-cant" title="Editar precio de compra"></td>
         <td><input type="number" min="0" step="0.01" value="${it.precioVenta ?? ''}" data-idx="${idx}" class="compra-venta-input bloque-cant" placeholder="—" title="Editar precio de venta"></td>
         <td><input type="number" min="0" step="0.01" value="${redondear2(it.cantidad * it.costoUnit)}" data-idx="${idx}" class="compra-total-input bloque-cant" title="Total pagado por este producto (se divide entre la cantidad para sacar el precio de compra)"></td>

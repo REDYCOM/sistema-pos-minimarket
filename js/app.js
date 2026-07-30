@@ -14,6 +14,7 @@ import { initEstadisticas, refrescarEstadisticas } from './ui-estadisticas.js';
 import { initCalculadora } from './calculadora-costo.js';
 import { initModales } from './modal.js';
 import { initAvisos, refrescarAvisos } from './avisos.js';
+import { initRuedaNumeros } from './util.js';
 
 const el = id => document.getElementById(id);
 
@@ -208,6 +209,7 @@ async function init() {
   initCalculadora();
   initModales();
   initAvisos();
+  initRuedaNumeros();
 
   // La UI ya es interactiva; lo que depende de datos espera a que Firestore
   // entregue el primer snapshot de cada colección (caché local o servidor).

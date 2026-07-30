@@ -20,7 +20,7 @@ function renderItems() {
     body.innerHTML = items.map((it, idx) => `
       <tr>
         <td>${it.nombre}</td>
-        <td><input type="number" min="1" step="1" value="${it.cantidad}" data-idx="${idx}" class="dev-cant-input bloque-cant" title="Cantidad devuelta"></td>
+        <td><input type="number" min="1" step="1" value="${it.cantidad}" data-idx="${idx}" class="dev-cant-input bloque-cant rueda-numero" title="Cantidad devuelta"></td>
         <td><input type="number" min="0" step="0.01" value="${it.precioUnit}" data-idx="${idx}" class="dev-precio-input bloque-cant" title="Precio devuelto por unidad"></td>
         <td>${money(it.cantidad * it.precioUnit)}</td>
         <td><button class="icono-btn quitar-item-dev" data-idx="${idx}" title="Quitar">✕</button></td>
