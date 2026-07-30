@@ -75,7 +75,17 @@ function renderInventario() {
 
 function renderProductos() {
   const query = el('prod-buscar').value;
-  const productos = buscarProductos(query);
+  const filtroPrecio = el('prod-filtro-precio').value;
+  let productos = buscarProductos(query);
+
+  // Filtro por precios faltantes (para ubicar rápido lo que falta completar).
+  const sinVenta = p => !tienePrecioFinal(p);
+  const sinCompra = p => !(Number(p.precioCompra) > 0);
+  if (filtroPrecio === 'sin-venta') productos = productos.filter(sinVenta);
+  else if (filtroPrecio === 'sin-compra') productos = productos.filter(sinCompra);
+  else if (filtroPrecio === 'sin-alguno') productos = productos.filter(p => sinVenta(p) || sinCompra(p));
+  else if (filtroPrecio === 'sin-ambos') productos = productos.filter(p => sinVenta(p) && sinCompra(p));
+
   const body = el('productos-body');
   body.innerHTML = productos.map(p => `
     <tr>
@@ -149,6 +159,7 @@ export function initProductosInventario() {
   });
 
   el('prod-buscar').addEventListener('input', renderProductos);
+  el('prod-filtro-precio').addEventListener('change', renderProductos);
   el('btn-nuevo-producto').addEventListener('click', () => abrirModalProducto());
   el('btn-cerrar-modal-producto').addEventListener('click', () => cerrarModal(el('modal-producto')));
 

@@ -39,6 +39,21 @@ function renderItems() {
   renderTotales();
 }
 
+// Reparte el monto total pagado en partes iguales por unidad: cada producto queda
+// con el mismo costo unitario (total ÷ cantidad total de unidades). Facilita
+// registrar una compra cuando solo se conoce el total pagado.
+function repartirTotalPagado() {
+  if (items.length === 0) return toast.warning('Primero agrega productos a la compra.');
+  const totalPagado = Number(el('compra-total-pagado').value);
+  if (!(totalPagado > 0)) return toast.warning('Escribe el monto total pagado.');
+  const totalUnidades = items.reduce((s, it) => s + (Number(it.cantidad) || 0), 0);
+  if (!(totalUnidades > 0)) return toast.warning('Las cantidades deben ser mayores a 0.');
+  const costoUnit = Math.round((totalPagado / totalUnidades) * 100) / 100;
+  items.forEach(it => { it.costoUnit = costoUnit; });
+  renderItems();
+  toast.success(`📊 Repartido: ${money(costoUnit)} por unidad entre ${totalUnidades} unidad(es).`);
+}
+
 // Calcula subtotal, descuento (con tope al subtotal) y el total ya descontado.
 function renderTotales() {
   const subtotal = totalDeItems(items);
@@ -128,6 +143,7 @@ function registrar() {
 
   items = [];
   el('compra-descuento').value = 0;
+  el('compra-total-pagado').value = '';
   renderItems();
   poblarProveedores(); // repuebla e incluye el proveedor recién usado
   el('compra-proveedor-nuevo').value = '';
@@ -200,11 +216,13 @@ export function initCompras() {
   el('btn-cerrar-modal-item').addEventListener('click', () => cerrarModal(el('modal-item-compra')));
   el('btn-vaciar-compra').addEventListener('click', async () => {
     if (items.length === 0) return;
-    if (await confirmar('¿Vaciar la compra actual?', { aceptar: 'Sí, vaciar', peligro: true })) { items = []; el('compra-descuento').value = 0; renderItems(); }
+    if (await confirmar('¿Vaciar la compra actual?', { aceptar: 'Sí, vaciar', peligro: true })) { items = []; el('compra-descuento').value = 0; el('compra-total-pagado').value = ''; renderItems(); }
   });
   el('btn-registrar-compra').addEventListener('click', registrar);
   el('compra-descuento').addEventListener('input', renderTotales);
   seleccionarAlEnfocar(el('compra-descuento'));
+  el('btn-repartir-compra').addEventListener('click', repartirTotalPagado);
+  seleccionarAlEnfocar(el('compra-total-pagado'));
 
   vincularSelectNuevo(el('compra-proveedor'), el('compra-proveedor-nuevo'));
   vincularSelectNuevo(el('item-nuevo-categoria'), el('item-nuevo-categoria-nueva'));

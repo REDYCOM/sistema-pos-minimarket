@@ -184,6 +184,13 @@
   <div class="tab-content" id="tab-productos">
     <div class="toolbar">
       <input type="text" id="prod-buscar" class="input-lg" placeholder="Buscar por proveedor, categoría, producto o código...">
+      <select id="prod-filtro-precio">
+        <option value="">Todos los productos</option>
+        <option value="sin-venta">Sin precio de venta</option>
+        <option value="sin-compra">Sin precio de compra</option>
+        <option value="sin-alguno">Sin algún precio (compra o venta)</option>
+        <option value="sin-ambos">Sin ningún precio (compra y venta)</option>
+      </select>
       <button id="btn-nuevo-producto" class="btn btn-primary">➕ Nuevo producto</button>
     </div>
     <table class="tabla-datos">
@@ -274,6 +281,15 @@
           <tr><td colspan="7" class="hint">Aún no agregaste productos a esta compra.</td></tr>
         </tbody>
       </table>
+
+      <div class="compra-repartir">
+        <label for="compra-total-pagado">Repartir monto total pagado (partes iguales por unidad)</label>
+        <div class="compra-repartir-fila">
+          <input type="number" id="compra-total-pagado" min="0" step="0.01" placeholder="Ej. monto total de la factura">
+          <button type="button" id="btn-repartir-compra" class="btn">📊 Repartir en los productos</button>
+        </div>
+        <p class="hint">Agrega los productos con sus cantidades, escribe cuánto pagaste en total y esto asigna el mismo costo por unidad a todos (total ÷ unidades).</p>
+      </div>
 
       <div class="compra-pie">
         <div class="compra-totales">

@@ -24,15 +24,15 @@ function calcularAvisos() {
   // --- Precios ---
   const sinVenta = productos.filter(p => !tienePrecioFinal(p));
   if (sinVenta.length) {
-    avisos.push({ tipo: 'warning', icono: '🏷️', titulo: 'Sin precio de venta', mensaje: `${sinVenta.length} producto(s) no se pueden vender hasta asignarlo: ${nombres(sinVenta)}`, tab: 'inventario' });
+    avisos.push({ tipo: 'warning', icono: '🏷️', titulo: 'Sin precio de venta', mensaje: `${sinVenta.length} producto(s) no se pueden vender hasta asignarlo: ${nombres(sinVenta)}`, tab: 'productos' });
   }
   const sinCompra = productos.filter(p => !(Number(p.precioCompra) > 0));
   if (sinCompra.length) {
-    avisos.push({ tipo: 'warning', icono: '💲', titulo: 'Sin precio de compra', mensaje: `${sinCompra.length} producto(s): ${nombres(sinCompra)}`, tab: 'inventario' });
+    avisos.push({ tipo: 'warning', icono: '💲', titulo: 'Sin precio de compra', mensaje: `${sinCompra.length} producto(s): ${nombres(sinCompra)}`, tab: 'productos' });
   }
   const conPerdida = productos.filter(p => tienePrecioFinal(p) && Number(p.precioCompra) > 0 && Number(p.precioVentaFinal) < Number(p.precioCompra));
   if (conPerdida.length) {
-    avisos.push({ tipo: 'error', icono: '📉', titulo: 'Precio de venta menor al de compra', mensaje: `${conPerdida.length} producto(s) se venden con pérdida: ${nombres(conPerdida)}`, tab: 'inventario' });
+    avisos.push({ tipo: 'error', icono: '📉', titulo: 'Precio de venta menor al de compra', mensaje: `${conPerdida.length} producto(s) se venden con pérdida: ${nombres(conPerdida)}`, tab: 'productos' });
   }
 
   // --- Stock ---
@@ -49,7 +49,7 @@ function calcularAvisos() {
 
   const sinCategoria = productos.filter(p => !p.categoria || !String(p.categoria).trim());
   if (sinCategoria.length) {
-    avisos.push({ tipo: 'warning', icono: '🗂️', titulo: 'Productos sin categoría', mensaje: `${sinCategoria.length} producto(s): ${nombres(sinCategoria)}`, tab: 'inventario' });
+    avisos.push({ tipo: 'warning', icono: '🗂️', titulo: 'Productos sin categoría', mensaje: `${sinCategoria.length} producto(s): ${nombres(sinCategoria)}`, tab: 'productos' });
   }
   const duplicados = codigosDuplicados(productos);
   if (duplicados.length) {
