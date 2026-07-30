@@ -11,6 +11,7 @@ import { seleccionarAlEnfocar } from './util.js';
 
 const el = id => document.getElementById(id);
 const money = n => `Bs ${Number(n).toFixed(2)}`;
+const redondear2 = n => Math.round((Number(n) || 0) * 100) / 100;
 
 // Compra en construcción (se limpia al registrar).
 let items = [];
@@ -30,28 +31,13 @@ function renderItems() {
         <td><input type="number" min="1" step="1" value="${it.cantidad}" data-idx="${idx}" class="compra-cant-input bloque-cant" title="Editar cantidad"></td>
         <td><input type="number" min="0" step="0.01" value="${it.costoUnit}" data-idx="${idx}" class="compra-costo-input bloque-cant" title="Editar precio de compra"></td>
         <td><input type="number" min="0" step="0.01" value="${it.precioVenta ?? ''}" data-idx="${idx}" class="compra-venta-input bloque-cant" placeholder="—" title="Editar precio de venta"></td>
-        <td>${money(it.cantidad * it.costoUnit)}</td>
+        <td><input type="number" min="0" step="0.01" value="${redondear2(it.cantidad * it.costoUnit)}" data-idx="${idx}" class="compra-total-input bloque-cant" title="Total pagado por este producto (se divide entre la cantidad para sacar el precio de compra)"></td>
         <td><button class="icono-btn calc-item-compra" data-idx="${idx}" title="Calcular costo">🧮</button></td>
         <td><button class="icono-btn quitar-item-compra" data-idx="${idx}" title="Quitar">✕</button></td>
       </tr>
     `).reverse().join('');
   }
   renderTotales();
-}
-
-// Reparte el monto total pagado en partes iguales por unidad: cada producto queda
-// con el mismo costo unitario (total ÷ cantidad total de unidades). Facilita
-// registrar una compra cuando solo se conoce el total pagado.
-function repartirTotalPagado() {
-  if (items.length === 0) return toast.warning('Primero agrega productos a la compra.');
-  const totalPagado = Number(el('compra-total-pagado').value);
-  if (!(totalPagado > 0)) return toast.warning('Escribe el monto total pagado.');
-  const totalUnidades = items.reduce((s, it) => s + (Number(it.cantidad) || 0), 0);
-  if (!(totalUnidades > 0)) return toast.warning('Las cantidades deben ser mayores a 0.');
-  const costoUnit = Math.round((totalPagado / totalUnidades) * 100) / 100;
-  items.forEach(it => { it.costoUnit = costoUnit; });
-  renderItems();
-  toast.success(`📊 Repartido: ${money(costoUnit)} por unidad entre ${totalUnidades} unidad(es).`);
 }
 
 // Calcula subtotal, descuento (con tope al subtotal) y el total ya descontado.
@@ -143,7 +129,6 @@ function registrar() {
 
   items = [];
   el('compra-descuento').value = 0;
-  el('compra-total-pagado').value = '';
   renderItems();
   poblarProveedores(); // repuebla e incluye el proveedor recién usado
   el('compra-proveedor-nuevo').value = '';
@@ -216,13 +201,11 @@ export function initCompras() {
   el('btn-cerrar-modal-item').addEventListener('click', () => cerrarModal(el('modal-item-compra')));
   el('btn-vaciar-compra').addEventListener('click', async () => {
     if (items.length === 0) return;
-    if (await confirmar('¿Vaciar la compra actual?', { aceptar: 'Sí, vaciar', peligro: true })) { items = []; el('compra-descuento').value = 0; el('compra-total-pagado').value = ''; renderItems(); }
+    if (await confirmar('¿Vaciar la compra actual?', { aceptar: 'Sí, vaciar', peligro: true })) { items = []; el('compra-descuento').value = 0; renderItems(); }
   });
   el('btn-registrar-compra').addEventListener('click', registrar);
   el('compra-descuento').addEventListener('input', renderTotales);
   seleccionarAlEnfocar(el('compra-descuento'));
-  el('btn-repartir-compra').addEventListener('click', repartirTotalPagado);
-  seleccionarAlEnfocar(el('compra-total-pagado'));
 
   vincularSelectNuevo(el('compra-proveedor'), el('compra-proveedor-nuevo'));
   vincularSelectNuevo(el('item-nuevo-categoria'), el('item-nuevo-categoria-nueva'));
@@ -266,19 +249,31 @@ export function initCompras() {
     }
   });
 
-  // Edición en línea de cantidad, precio de compra y precio de venta. Mientras
-  // escribes solo se recalcula el subtotal de la fila y el total, sin reconstruir
-  // la tabla, para no perder el foco del campo.
+  // Edición en línea. La columna "Total pagado" es el reparto POR PRODUCTO: al
+  // escribir el total de ese producto, su precio de compra = total ÷ cantidad
+  // (así cada tipo de producto de un mismo proveedor queda con su costo real).
+  // Se actualizan los campos ligados sin reconstruir la tabla (no se pierde el foco).
   el('compra-items-body').addEventListener('input', e => {
     const t = e.target;
     const it = items[Number(t.dataset.idx)];
     if (!it) return;
-    if (t.classList.contains('compra-cant-input')) it.cantidad = Number(t.value);
-    else if (t.classList.contains('compra-costo-input')) it.costoUnit = Number(t.value);
-    else if (t.classList.contains('compra-venta-input')) it.precioVenta = t.value === '' ? '' : Number(t.value);
-    else return;
     const fila = t.closest('tr');
-    fila.children[4].textContent = money((Number(it.cantidad) || 0) * (Number(it.costoUnit) || 0));
+    const inputCosto = fila.children[2].querySelector('input');
+    const inputTotal = fila.children[4].querySelector('input');
+    if (t.classList.contains('compra-cant-input')) {
+      it.cantidad = Number(t.value);
+      if (inputTotal) inputTotal.value = redondear2((Number(it.cantidad) || 0) * (Number(it.costoUnit) || 0));
+    } else if (t.classList.contains('compra-costo-input')) {
+      it.costoUnit = Number(t.value);
+      if (inputTotal) inputTotal.value = redondear2((Number(it.cantidad) || 0) * (Number(it.costoUnit) || 0));
+    } else if (t.classList.contains('compra-venta-input')) {
+      it.precioVenta = t.value === '' ? '' : Number(t.value);
+    } else if (t.classList.contains('compra-total-input')) {
+      const total = Number(t.value);
+      const cant = Number(it.cantidad) || 0;
+      it.costoUnit = cant > 0 ? redondear2(total / cant) : 0;
+      if (inputCosto) inputCosto.value = it.costoUnit;
+    } else return;
     renderTotales();
   });
 
@@ -287,8 +282,12 @@ export function initCompras() {
     const t = e.target;
     const it = items[Number(t.dataset.idx)];
     if (!it) return;
-    if (t.classList.contains('compra-cant-input') && !(Number(it.cantidad) >= 1)) { it.cantidad = 1; renderItems(); }
-    else if (t.classList.contains('compra-costo-input') && !(Number(it.costoUnit) >= 0)) { it.costoUnit = 0; renderItems(); }
+    const esFila = t.classList.contains('compra-cant-input') || t.classList.contains('compra-costo-input')
+      || t.classList.contains('compra-venta-input') || t.classList.contains('compra-total-input');
+    if (!esFila) return;
+    if (!(Number(it.cantidad) >= 1)) it.cantidad = 1;
+    if (!(Number(it.costoUnit) >= 0)) it.costoUnit = 0;
+    renderItems(); // normaliza todos los campos ligados (precio de compra ↔ total pagado)
   });
 
   el('compra-filtro-fecha-desde').addEventListener('input', renderHistorial);

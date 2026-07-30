@@ -276,20 +276,13 @@
       </div>
 
       <table class="tabla-datos" style="margin-top:1rem">
-        <thead><tr><th>Producto</th><th>Cantidad</th><th>P. Compra</th><th>P. Venta</th><th>Subtotal</th><th></th><th></th></tr></thead>
+        <thead><tr><th>Producto</th><th>Cantidad</th><th>P. Compra</th><th>P. Venta</th><th>Total pagado</th><th></th><th></th></tr></thead>
         <tbody id="compra-items-body">
           <tr><td colspan="7" class="hint">Aún no agregaste productos a esta compra.</td></tr>
         </tbody>
       </table>
 
-      <div class="compra-repartir">
-        <label for="compra-total-pagado">Repartir monto total pagado (partes iguales por unidad)</label>
-        <div class="compra-repartir-fila">
-          <input type="number" id="compra-total-pagado" min="0" step="0.01" placeholder="Ej. monto total de la factura">
-          <button type="button" id="btn-repartir-compra" class="btn">📊 Repartir en los productos</button>
-        </div>
-        <p class="hint">Agrega los productos con sus cantidades, escribe cuánto pagaste en total y esto asigna el mismo costo por unidad a todos (total ÷ unidades).</p>
-      </div>
+      <p class="hint" style="margin-top:0.6rem">💡 En cada producto puedes escribir el <strong>Total pagado</strong> por ese producto y su precio de compra se calcula solo (total ÷ cantidad).</p>
 
       <div class="compra-pie">
         <div class="compra-totales">
