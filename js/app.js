@@ -18,6 +18,10 @@ import { initRuedaNumeros } from './util.js';
 
 const el = id => document.getElementById(id);
 
+// Versión visible de la app (subir junto con la del service worker). Sirve para
+// saber de un vistazo si un cajero quedó con una versión vieja en caché.
+const APP_VERSION = 'v13.1';
+
 let pendingUserId = null; // usuario que está fijando su contraseña inicial
 
 function showView(id) {
@@ -187,6 +191,8 @@ function initLogout() {
 }
 
 async function init() {
+  const vEl = el('app-version');
+  if (vEl) vEl.textContent = APP_VERSION;
   aplicarLogoGuardado();
 
   initLoginForm();

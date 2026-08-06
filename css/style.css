@@ -340,15 +340,17 @@ input.bloque-cant::-webkit-inner-spin-button { opacity: 0.6; }
 .cierre-linea-total { border-top: 1px solid var(--color-border); margin-top: 0.3rem; padding-top: 0.45rem; }
 .cierre-linea-total strong { font-size: 1.15rem; color: var(--color-primary-dark); }
 
+/* El carrito hace scroll dentro de su propia zona: así el panel de Total nunca
+   tapa los productos, aunque la pantalla sea baja. */
+.carrito-scroll { max-height: 42vh; overflow-y: auto; border-radius: 14px; }
+.app-version { font-size: 0.72rem; color: var(--color-muted); font-family: var(--mono); opacity: 0.7; }
+
 .venta-resumen {
   background: var(--color-card);
   border-radius: 14px;
   padding: 0.55rem 1rem;
   border: 1px solid var(--color-border);
   box-shadow: 0 -4px 16px rgba(16,24,40,0.06);
-  position: sticky;
-  bottom: 0.4rem;
-  z-index: 50;
 }
 .resumen-linea { display: flex; justify-content: space-between; align-items: center; margin: 0.25rem 0; color: var(--color-muted); }
 .resumen-linea strong { color: var(--color-text); font-family: var(--mono); }

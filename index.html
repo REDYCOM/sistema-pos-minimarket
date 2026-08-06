@@ -103,6 +103,7 @@
       <span class="marca" id="marca-negocio">🏪 Minimarket</span>
       <span id="stock-bajo-alerta" class="badge badge-warning hidden"></span>
       <div class="topbar-right">
+        <span id="app-version" class="app-version" title="Versión de la app instalada"></span>
         <div id="clock" class="clock">🕒</div>
         <button id="btn-cerrar-turno" class="btn btn-danger">🔒 Cerrar turno</button>
       </div>
@@ -123,12 +124,14 @@
         <input type="text" id="busqueda-producto" class="input-lg" placeholder="Escanea código de barras o busca por nombre..." autocomplete="off">
         <div id="sugerencias" class="sugerencias hidden"></div>
       </div>
-      <table class="tabla-carrito">
-        <thead>
-          <tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th><th></th></tr>
-        </thead>
-        <tbody id="carrito-body"></tbody>
-      </table>
+      <div class="carrito-scroll">
+        <table class="tabla-carrito">
+          <thead>
+            <tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th><th></th></tr>
+          </thead>
+          <tbody id="carrito-body"></tbody>
+        </table>
+      </div>
       <div class="venta-resumen">
         <div class="resumen-linea"><span>Subtotal</span><strong id="resumen-subtotal">Bs 0.00</strong></div>
         <div class="resumen-linea">
