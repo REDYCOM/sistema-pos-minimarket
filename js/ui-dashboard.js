@@ -252,7 +252,19 @@ export function initDashboard() {
     if (!e.target.classList.contains('quitar-item')) return;
     carrito.splice(Number(e.target.dataset.idx), 1);
     renderCarrito();
+    enfocarBusqueda(); // tras quitar, el cursor vuelve al código de barras
   });
+
+  // Mantener el cursor en el código de barras al volver a la ventana/pestaña
+  // (ej. tras usar otra aplicación), si la pestaña Venta está activa y no hay
+  // ningún modal abierto (para no interrumpir un cobro en curso).
+  const reenfocarSiVenta = () => {
+    const ventaActiva = el('view-dashboard').classList.contains('active') && el('tab-venta').classList.contains('active');
+    const hayModal = document.querySelector('.modal:not(.hidden)');
+    if (ventaActiva && !hayModal) enfocarBusqueda();
+  };
+  window.addEventListener('focus', reenfocarSiVenta);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reenfocarSiVenta(); });
 
   el('descuento-monto').addEventListener('input', renderResumen);
   el('descuento-tipo').addEventListener('change', renderResumen);
