@@ -36,7 +36,14 @@ function calcularAvisos() {
   }
 
   // --- Stock ---
-  const bajos = productosConStockBajo();
+  // Productos vendidos sin stock: quedaron en negativo porque se vendieron más
+  // unidades de las registradas (ej. unidades físicas del almacén no cargadas).
+  const vendidosSinStock = productos.filter(p => Number(p.stock) < 0);
+  if (vendidosSinStock.length) {
+    avisos.push({ tipo: 'error', icono: '🛒', titulo: 'Vendidos sin stock registrado', mensaje: `${vendidosSinStock.length} producto(s) quedaron en stock negativo (se vendieron sin stock): ${nombres(vendidosSinStock)}. Registra las unidades encontradas para cuadrar el inventario.`, tab: 'productos' });
+  }
+  // "Stock bajo" excluye los negativos (esos ya salen en el aviso de arriba).
+  const bajos = productosConStockBajo().filter(p => Number(p.stock) >= 0);
   if (bajos.length) {
     avisos.push({ tipo: 'warning', icono: '📦', titulo: 'Stock bajo', mensaje: `${bajos.length} producto(s) por debajo del mínimo: ${nombres(bajos)}`, tab: 'inventario' });
   }

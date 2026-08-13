@@ -53,20 +53,16 @@ function agregarAlCarrito(producto) {
     toast.warning(`"${producto.nombre}" no tiene precio de venta asignado. Asígnalo en Inventario/Productos.`);
     return;
   }
-  if (producto.stock <= 0) {
-    toast.error(`"${producto.nombre}" no tiene stock disponible.`);
-    return;
-  }
   const existente = carrito.find(i => i.id === producto.id);
-  if (existente) {
-    if (existente.cantidad + 1 > producto.stock) {
-      toast.error('No hay suficiente stock.');
-      return;
-    }
-    existente.cantidad += 1;
-  } else {
-    carrito.push({ id: producto.id, nombre: producto.nombre, precioUnit: producto.precioVentaFinal, cantidad: 1 });
+  const nuevaCantidad = existente ? existente.cantidad + 1 : 1;
+  // Se permite vender aunque no haya stock: a veces hay unidades físicas que no se
+  // registraron y no hay que perder la venta. En vez de bloquear, solo se avisa;
+  // los productos que queden en stock negativo aparecen en Avisos para registrarlos.
+  if (nuevaCantidad > producto.stock) {
+    toast.warning(`⚠️ "${producto.nombre}" se vende sin stock. Recuerda registrarlo (aparecerá en Avisos).`);
   }
+  if (existente) existente.cantidad = nuevaCantidad;
+  else carrito.push({ id: producto.id, nombre: producto.nombre, precioUnit: producto.precioVentaFinal, cantidad: 1 });
   renderCarrito();
   el('busqueda-producto').value = '';
   el('sugerencias').classList.add('hidden');
@@ -237,14 +233,9 @@ export function initDashboard() {
     if (!e.target.classList.contains('cantidad-input')) return;
     const idx = Number(e.target.dataset.idx);
     const item = carrito[idx];
-    const producto = db.productos.find(item.id);
     let nueva = Number(e.target.value);
     if (nueva < 1) nueva = 1;
-    if (producto && nueva > producto.stock) {
-      toast.error('No hay suficiente stock.');
-      nueva = producto.stock;
-    }
-    item.cantidad = nueva;
+    item.cantidad = nueva; // se permite superar el stock (venta sin stock registrado)
     renderCarrito();
   });
 
