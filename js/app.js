@@ -20,7 +20,7 @@ const el = id => document.getElementById(id);
 
 // Versión visible de la app (subir junto con la del service worker). Sirve para
 // saber de un vistazo si un cajero quedó con una versión vieja en caché.
-const APP_VERSION = 'v19';
+const APP_VERSION = 'v20';
 
 let pendingUserId = null; // usuario que está fijando su contraseña inicial
 
@@ -217,15 +217,23 @@ async function init() {
   initAvisos();
   initRuedaNumeros();
 
-  // Atajo global: Esc lleva a la pestaña Venta desde cualquier otra pestaña.
-  // Se registra DESPUÉS de initDashboard/initModales para que, si hay un modal
-  // abierto, primero lo cierren ellos; y en Venta, Esc siga cancelando la venta.
+  // Atajos globales de teclado (solo dentro del sistema y sin modales abiertos):
+  //   Esc → ir a Venta y dejar el cursor en el código de barras.
+  //   F1  → cancelar venta.  F2..F6 → pestañas de trabajo.
+  // Se registra DESPUÉS de initDashboard/initModales: si hay un modal abierto,
+  // Esc lo cierran ellos y las F no hacen nada.
+  const irAVenta = () => {
+    if (el('tab-venta').classList.contains('active')) enfocarBusqueda();
+    else document.querySelector('.tab-btn[data-tab="venta"]')?.click(); // el click ya enfoca
+  };
+  const F_TABS = { F2: 'inventario', F3: 'productos', F4: 'dinero', F5: 'compras', F6: 'devoluciones' };
   document.addEventListener('keydown', e => {
-    if (e.key !== 'Escape') return;
-    if (document.querySelector('.modal:not(.hidden)')) return;   // hay modal: lo maneja el modal
-    if (!el('view-dashboard').classList.contains('active')) return; // solo dentro del sistema
-    if (el('tab-venta').classList.contains('active')) return;     // ya está en Venta
-    document.querySelector('.tab-btn[data-tab="venta"]')?.click();
+    if (!el('view-dashboard').classList.contains('active')) return;
+    if (document.querySelector('.modal:not(.hidden)')) return;
+    if (e.key === 'Escape') { irAVenta(); return; }
+    if (e.key === 'F1') { e.preventDefault(); document.getElementById('btn-cancelar-venta')?.click(); return; }
+    const tab = F_TABS[e.key];
+    if (tab) { e.preventDefault(); document.querySelector(`.tab-btn[data-tab="${tab}"]`)?.click(); }
   });
 
   // La UI ya es interactiva; lo que depende de datos espera a que Firestore

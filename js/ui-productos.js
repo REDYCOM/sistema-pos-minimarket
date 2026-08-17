@@ -4,7 +4,7 @@ import {
   crearProducto, actualizarProducto, eliminarProducto, productosConStockBajo, nivelStock,
 } from './productos.js';
 import { actualizarAlertaStockBajo } from './ui-dashboard.js';
-import { listarCategorias, listarProveedores, poblarSelectCatalogo, resolverValorCatalogo, vincularSelectNuevo } from './catalogo.js';
+import { listarCategorias, listarProveedores, agregarProveedor, poblarSelectCatalogo, resolverValorCatalogo, vincularSelectNuevo } from './catalogo.js';
 import { exportarInventarioExcel, importarInventarioExcel } from './backup.js';
 import { refrescarAvisos } from './avisos.js';
 import { toast } from './toast.js';
@@ -93,7 +93,7 @@ function renderProductos() {
       <td>${p.codigo}</td>
       <td>${p.nombre}</td>
       <td>${p.categoria}</td>
-      <td>${p.proveedor || '—'}</td>
+      <td><span class="prov-edit" data-id="${p.id}" title="Clic para cambiar el proveedor">${p.proveedor || '<span class="hint">— asignar —</span>'}</span></td>
       <td>${celdaStock(p)}</td>
       <td>${money(p.precioCompra)}</td>
       <td>${tienePrecioFinal(p) ? money(p.precioVentaFinal) : '<span class="texto-alerta">⚠️ Sin precio</span>'}</td>
@@ -103,6 +103,39 @@ function renderProductos() {
       </td>
     </tr>
   `).join('');
+}
+
+// Cambio rápido de proveedor desde la lista: al hacer clic en la celda se
+// convierte en un desplegable (proveedores + "Nuevo…"), sin abrir el modal.
+function editarProveedorInline(span) {
+  const id = span.dataset.id;
+  const prod = db.productos.find(id);
+  if (!prod) return;
+  const select = document.createElement('select');
+  select.className = 'prov-inline-select';
+  const proveedores = listarProveedores();
+  select.innerHTML = '<option value="">— Sin proveedor —</option>'
+    + proveedores.map(pr => `<option value="${pr}"${pr === prod.proveedor ? ' selected' : ''}>${pr}</option>`).join('')
+    + '<option value="__nuevo__">➕ Nuevo proveedor…</option>';
+  span.replaceWith(select);
+  select.focus();
+  let cerrado = false;
+  const guardar = () => {
+    if (cerrado) return;
+    cerrado = true;
+    let valor = select.value;
+    if (valor === '__nuevo__') {
+      const nombre = (window.prompt('Nombre del nuevo proveedor:') || '').trim();
+      if (nombre) { agregarProveedor(nombre); valor = nombre; } else valor = prod.proveedor || '';
+    }
+    if (valor !== (prod.proveedor || '')) {
+      db.productos.update(id, { proveedor: valor });
+      toast.success('✅ Proveedor actualizado.');
+    }
+    renderProductos();
+  };
+  select.addEventListener('change', guardar);
+  select.addEventListener('blur', guardar);
 }
 
 function actualizarPrecioSugeridoModal() {
@@ -161,6 +194,15 @@ export function initProductosInventario() {
 
   el('prod-buscar').addEventListener('input', renderProductos);
   el('prod-filtro-precio').addEventListener('change', renderProductos);
+  // Verificación rápida por código de barras: al escanear (Enter), se deja el
+  // producto encontrado a la vista y se limpia el campo con el cursor listo para
+  // el siguiente. No re-renderiza, así el resultado del escaneo sigue visible.
+  el('prod-buscar').addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    e.target.value = '';
+    e.target.focus();
+  });
   el('btn-nuevo-producto').addEventListener('click', () => abrirModalProducto());
   el('btn-cerrar-modal-producto').addEventListener('click', () => cerrarModal(el('modal-producto')));
 
@@ -170,6 +212,8 @@ export function initProductosInventario() {
   vincularSelectNuevo(el('prod-proveedor'), el('prod-proveedor-nuevo'));
 
   el('productos-body').addEventListener('click', async e => {
+    const provSpan = e.target.closest('.prov-edit');
+    if (provSpan) { editarProveedorInline(provSpan); return; }
     const editarBtn = e.target.closest('.editar-producto');
     const eliminarBtn = e.target.closest('.eliminar-producto');
     if (editarBtn) {

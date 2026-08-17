@@ -321,14 +321,6 @@ export function initDashboard() {
     toast[cierre.diferencia === 0 ? 'success' : 'warning'](`🔒 Turno cerrado. ${diffTexto}`);
   });
 
-  // ESC en la pestaña Venta (sin ningún modal abierto) cancela la venta actual.
-  document.addEventListener('keydown', e => {
-    if (e.key !== 'Escape') return;
-    const ventaActiva = el('view-dashboard').classList.contains('active') && el('tab-venta').classList.contains('active');
-    const hayModal = document.querySelector('.modal:not(.hidden)');
-    if (ventaActiva && !hayModal && carrito.length > 0) cancelarVenta();
-  });
-
   actualizarAlertaStockBajo();
 }
 
