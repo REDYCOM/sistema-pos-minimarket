@@ -24,11 +24,11 @@ function calcularAvisos() {
   // --- Precios ---
   const sinVenta = productos.filter(p => !tienePrecioFinal(p));
   if (sinVenta.length) {
-    avisos.push({ tipo: 'warning', icono: '🏷️', titulo: 'Sin precio de venta', mensaje: `${sinVenta.length} producto(s) no se pueden vender hasta asignarlo: ${nombres(sinVenta)}`, tab: 'productos' });
+    avisos.push({ tipo: 'warning', icono: '🏷️', titulo: 'Sin precio de venta', mensaje: `${sinVenta.length} producto(s) no se pueden vender hasta asignarlo: ${nombres(sinVenta)}`, tab: 'productos', filtroPrecio: 'sin-venta' });
   }
   const sinCompra = productos.filter(p => !(Number(p.precioCompra) > 0));
   if (sinCompra.length) {
-    avisos.push({ tipo: 'warning', icono: '💲', titulo: 'Sin precio de compra', mensaje: `${sinCompra.length} producto(s): ${nombres(sinCompra)}`, tab: 'productos' });
+    avisos.push({ tipo: 'warning', icono: '💲', titulo: 'Sin precio de compra', mensaje: `${sinCompra.length} producto(s): ${nombres(sinCompra)}`, tab: 'productos', filtroPrecio: 'sin-compra' });
   }
   const conPerdida = productos.filter(p => tienePrecioFinal(p) && Number(p.precioCompra) > 0 && Number(p.precioVentaFinal) < Number(p.precioCompra));
   if (conPerdida.length) {
@@ -40,7 +40,7 @@ function calcularAvisos() {
   // unidades de las registradas (ej. unidades físicas del almacén no cargadas).
   const vendidosSinStock = productos.filter(p => Number(p.stock) < 0);
   if (vendidosSinStock.length) {
-    avisos.push({ tipo: 'error', icono: '🛒', titulo: 'Vendidos sin stock registrado', mensaje: `${vendidosSinStock.length} producto(s) quedaron en stock negativo (se vendieron sin stock): ${nombres(vendidosSinStock)}. Registra las unidades encontradas para cuadrar el inventario.`, tab: 'productos' });
+    avisos.push({ tipo: 'error', icono: '🛒', titulo: 'Vendidos sin stock registrado', mensaje: `${vendidosSinStock.length} producto(s) quedaron en stock negativo (se vendieron sin stock): ${nombres(vendidosSinStock)}. Registra las unidades encontradas para cuadrar el inventario.`, tab: 'productos', filtroPrecio: 'stock-negativo' });
   }
   // "Stock bajo" excluye los negativos (esos ya salen en el aviso de arriba).
   const bajos = productosConStockBajo().filter(p => Number(p.stock) >= 0);
@@ -102,7 +102,7 @@ export function refrescarAvisos() {
   }
 
   lista.innerHTML = avisos.map(a => `
-    <div class="aviso aviso-${a.tipo}" ${a.tab ? `data-tab="${a.tab}"` : ''}>
+    <div class="aviso aviso-${a.tipo}" ${a.tab ? `data-tab="${a.tab}"` : ''}${a.filtroPrecio ? ` data-filtro-precio="${a.filtroPrecio}"` : ''}>
       <span class="aviso-icono">${a.icono}</span>
       <div class="aviso-cuerpo">
         <div class="aviso-titulo">${a.titulo}</div>
@@ -119,7 +119,16 @@ export function initAvisos() {
 
   el('avisos-lista').addEventListener('click', e => {
     const aviso = e.target.closest('.aviso[data-tab]');
-    if (aviso) document.querySelector(`.tab-btn[data-tab="${aviso.dataset.tab}"]`)?.click();
+    if (!aviso) return;
+    document.querySelector(`.tab-btn[data-tab="${aviso.dataset.tab}"]`)?.click();
+    // Si el aviso trae un filtro, se aplica en Productos para ver solo los afectados.
+    const fp = aviso.dataset.filtroPrecio;
+    if (fp) {
+      const buscar = document.getElementById('prod-buscar');
+      const select = document.getElementById('prod-filtro-precio');
+      if (buscar) buscar.value = '';
+      if (select) { select.value = fp; select.dispatchEvent(new Event('change')); }
+    }
   });
 
   refrescarAvisos();

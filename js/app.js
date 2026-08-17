@@ -20,7 +20,7 @@ const el = id => document.getElementById(id);
 
 // Versión visible de la app (subir junto con la del service worker). Sirve para
 // saber de un vistazo si un cajero quedó con una versión vieja en caché.
-const APP_VERSION = 'v16';
+const APP_VERSION = 'v17';
 
 let pendingUserId = null; // usuario que está fijando su contraseña inicial
 
@@ -216,6 +216,17 @@ async function init() {
   initModales();
   initAvisos();
   initRuedaNumeros();
+
+  // Atajo global: Esc lleva a la pestaña Venta desde cualquier otra pestaña.
+  // Se registra DESPUÉS de initDashboard/initModales para que, si hay un modal
+  // abierto, primero lo cierren ellos; y en Venta, Esc siga cancelando la venta.
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (document.querySelector('.modal:not(.hidden)')) return;   // hay modal: lo maneja el modal
+    if (!el('view-dashboard').classList.contains('active')) return; // solo dentro del sistema
+    if (el('tab-venta').classList.contains('active')) return;     // ya está en Venta
+    document.querySelector('.tab-btn[data-tab="venta"]')?.click();
+  });
 
   // La UI ya es interactiva; lo que depende de datos espera a que Firestore
   // entregue el primer snapshot de cada colección (caché local o servidor).

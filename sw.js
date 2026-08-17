@@ -3,7 +3,7 @@
 // app abra sin conexión. Las llamadas de datos a Firestore/Auth NO se cachean:
 // Firestore tiene su propia persistencia offline (IndexedDB) y se sincroniza sola.
 
-const VERSION = 'pos-minimarket-v16';
+const VERSION = 'pos-minimarket-v17';
 const APP_SHELL = [
   './',
   './index.html',

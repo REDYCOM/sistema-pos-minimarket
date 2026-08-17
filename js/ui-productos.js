@@ -85,6 +85,7 @@ function renderProductos() {
   else if (filtroPrecio === 'sin-compra') productos = productos.filter(sinCompra);
   else if (filtroPrecio === 'sin-alguno') productos = productos.filter(p => sinVenta(p) || sinCompra(p));
   else if (filtroPrecio === 'sin-ambos') productos = productos.filter(p => sinVenta(p) && sinCompra(p));
+  else if (filtroPrecio === 'stock-negativo') productos = productos.filter(p => Number(p.stock) < 0);
 
   const body = el('productos-body');
   body.innerHTML = productos.map(p => `
