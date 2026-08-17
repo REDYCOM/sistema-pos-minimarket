@@ -13,6 +13,16 @@ import { abrirModal, cerrarModal, confirmar } from './modal.js';
 const el = id => document.getElementById(id);
 const money = n => `Bs ${Number(n).toFixed(2)}`;
 
+// Máximo de filas que se dibujan de una vez. Con ~1500+ productos, dibujarlos
+// todos en cada acción hace lento el navegador; el resto se ubica con el
+// buscador o los filtros.
+const TOPE_LISTA = 200;
+function avisoTope(total, columnas) {
+  return total > TOPE_LISTA
+    ? `<tr><td colspan="${columnas}" class="hint" style="text-align:center;padding:0.8rem">Mostrando ${TOPE_LISTA} de ${total} — usá el buscador o los filtros para ver el resto.</td></tr>`
+    : '';
+}
+
 const TITULO_NIVEL = { bajo: 'Stock bajo', medio: 'Stock medio', alto: 'Stock alto' };
 // Bolita de color + valor de stock.
 function celdaStock(p) {
@@ -43,7 +53,7 @@ function renderInventario() {
   if (filtroStock === 'alto') productos = productos.filter(p => p.stock >= p.stockMinimo * 2);
 
   const body = el('inventario-body');
-  body.innerHTML = productos.map(p => `
+  body.innerHTML = productos.slice(0, TOPE_LISTA).map(p => `
     <tr class="${!tienePrecioFinal(p) ? 'fila-sin-precio' : ''}">
       <td>${p.codigo}</td>
       <td>${p.nombre}</td>
@@ -54,7 +64,7 @@ function renderInventario() {
       <td>${money(precioSugerido(p))}</td>
       <td>${tienePrecioFinal(p) ? money(p.precioVentaFinal) : '<span class="texto-alerta">⚠️ Producto sin precio de venta</span>'}</td>
     </tr>
-  `).join('');
+  `).join('') + avisoTope(productos.length, 8);
 
   const bajos = productosConStockBajo();
   const alerta = el('stock-bajo-lista');
@@ -88,7 +98,7 @@ function renderProductos() {
   else if (filtroPrecio === 'stock-negativo') productos = productos.filter(p => Number(p.stock) < 0);
 
   const body = el('productos-body');
-  body.innerHTML = productos.map(p => `
+  body.innerHTML = productos.slice(0, TOPE_LISTA).map(p => `
     <tr>
       <td>${p.codigo}</td>
       <td>${p.nombre}</td>
@@ -102,7 +112,7 @@ function renderProductos() {
         <button class="icono-btn eliminar-producto" data-id="${p.id}" title="Eliminar">🗑️</button>
       </td>
     </tr>
-  `).join('');
+  `).join('') + avisoTope(productos.length, 8);
 }
 
 // Cambio rápido de categoría o proveedor desde la lista: al hacer clic en la
