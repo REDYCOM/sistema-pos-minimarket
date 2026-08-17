@@ -4,7 +4,7 @@ import {
   crearProducto, actualizarProducto, eliminarProducto, productosConStockBajo, nivelStock,
 } from './productos.js';
 import { actualizarAlertaStockBajo } from './ui-dashboard.js';
-import { listarCategorias, listarProveedores, agregarProveedor, poblarSelectCatalogo, resolverValorCatalogo, vincularSelectNuevo } from './catalogo.js';
+import { listarCategorias, listarProveedores, agregarProveedor, agregarCategoria, poblarSelectCatalogo, resolverValorCatalogo, vincularSelectNuevo } from './catalogo.js';
 import { exportarInventarioExcel, importarInventarioExcel } from './backup.js';
 import { refrescarAvisos } from './avisos.js';
 import { toast } from './toast.js';
@@ -92,8 +92,8 @@ function renderProductos() {
     <tr>
       <td>${p.codigo}</td>
       <td>${p.nombre}</td>
-      <td>${p.categoria}</td>
-      <td><span class="prov-edit" data-id="${p.id}" title="Clic para cambiar el proveedor">${p.proveedor || '<span class="hint">— asignar —</span>'}</span></td>
+      <td><span class="celda-edit" data-id="${p.id}" data-campo="categoria" title="Clic para cambiar la categoría">${p.categoria || '<span class="hint">— asignar —</span>'}</span></td>
+      <td><span class="celda-edit" data-id="${p.id}" data-campo="proveedor" title="Clic para cambiar el proveedor">${p.proveedor || '<span class="hint">— asignar —</span>'}</span></td>
       <td>${celdaStock(p)}</td>
       <td>${money(p.precioCompra)}</td>
       <td>${tienePrecioFinal(p) ? money(p.precioVentaFinal) : '<span class="texto-alerta">⚠️ Sin precio</span>'}</td>
@@ -105,32 +105,37 @@ function renderProductos() {
   `).join('');
 }
 
-// Cambio rápido de proveedor desde la lista: al hacer clic en la celda se
-// convierte en un desplegable (proveedores + "Nuevo…"), sin abrir el modal.
-function editarProveedorInline(span) {
+// Cambio rápido de categoría o proveedor desde la lista: al hacer clic en la
+// celda se convierte en un desplegable (que se abre solo) con las opciones +
+// "Nuevo…", sin abrir el modal ni tener que bajar.
+function editarCeldaInline(span) {
   const id = span.dataset.id;
+  const campo = span.dataset.campo; // 'categoria' | 'proveedor'
   const prod = db.productos.find(id);
   if (!prod) return;
+  const esProv = campo === 'proveedor';
+  const opciones = esProv ? listarProveedores() : listarCategorias();
+  const actual = prod[campo] || '';
   const select = document.createElement('select');
-  select.className = 'prov-inline-select';
-  const proveedores = listarProveedores();
-  select.innerHTML = '<option value="">— Sin proveedor —</option>'
-    + proveedores.map(pr => `<option value="${pr}"${pr === prod.proveedor ? ' selected' : ''}>${pr}</option>`).join('')
-    + '<option value="__nuevo__">➕ Nuevo proveedor…</option>';
+  select.className = 'celda-inline-select';
+  select.innerHTML = `<option value="">${esProv ? '— Sin proveedor —' : '— Sin categoría —'}</option>`
+    + opciones.map(o => `<option value="${o}"${o === actual ? ' selected' : ''}>${o}</option>`).join('')
+    + `<option value="__nuevo__">${esProv ? '➕ Nuevo proveedor…' : '➕ Nueva categoría…'}</option>`;
   span.replaceWith(select);
   select.focus();
+  try { select.showPicker(); } catch (_) { /* navegador sin showPicker: se abre con un clic */ }
   let cerrado = false;
   const guardar = () => {
     if (cerrado) return;
     cerrado = true;
     let valor = select.value;
     if (valor === '__nuevo__') {
-      const nombre = (window.prompt('Nombre del nuevo proveedor:') || '').trim();
-      if (nombre) { agregarProveedor(nombre); valor = nombre; } else valor = prod.proveedor || '';
+      const nombre = (window.prompt(esProv ? 'Nombre del nuevo proveedor:' : 'Nombre de la nueva categoría:') || '').trim();
+      if (nombre) { (esProv ? agregarProveedor : agregarCategoria)(nombre); valor = nombre; } else valor = actual;
     }
-    if (valor !== (prod.proveedor || '')) {
-      db.productos.update(id, { proveedor: valor });
-      toast.success('✅ Proveedor actualizado.');
+    if (valor !== actual) {
+      db.productos.update(id, { [campo]: valor });
+      toast.success(esProv ? '✅ Proveedor actualizado.' : '✅ Categoría actualizada.');
     }
     renderProductos();
   };
@@ -212,8 +217,8 @@ export function initProductosInventario() {
   vincularSelectNuevo(el('prod-proveedor'), el('prod-proveedor-nuevo'));
 
   el('productos-body').addEventListener('click', async e => {
-    const provSpan = e.target.closest('.prov-edit');
-    if (provSpan) { editarProveedorInline(provSpan); return; }
+    const celdaSpan = e.target.closest('.celda-edit');
+    if (celdaSpan) { editarCeldaInline(celdaSpan); return; }
     const editarBtn = e.target.closest('.editar-producto');
     const eliminarBtn = e.target.closest('.eliminar-producto');
     if (editarBtn) {
