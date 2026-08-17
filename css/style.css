@@ -69,6 +69,14 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Accesibilidad: si el sistema pide menos movimiento, se quitan los desplazamientos
+   pero se conservan los fades suaves (comprensión sin mareo). */
+@media (prefers-reduced-motion: reduce) {
+  .view.active { animation: none; }
+  .btn:hover, .btn:active, .icono-btn:active, .sidebar .tab-btn:active { transform: none; }
+  .modal-content { animation-name: fondo-in; }
+}
+
 .loading-overlay {
   position: fixed; inset: 0;
   z-index: 3000;
@@ -168,10 +176,14 @@ input.input-sm { width: 6rem; display: inline-block; padding: 0.4rem; border-rad
   color: var(--color-text);
   font-weight: 600;
   box-shadow: 0 1px 2px rgba(16,24,40,0.06);
-  transition: background 0.18s ease, transform 0.12s ease, box-shadow 0.18s ease, border-color 0.18s ease, filter 0.18s ease;
+  transition: background 0.18s ease, transform 0.13s var(--ease-out-expo), box-shadow 0.18s ease, border-color 0.18s ease, filter 0.18s ease;
 }
-.btn:hover { background: #e9edf3; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(16,24,40,0.12); }
-.btn:active { transform: translateY(0); box-shadow: 0 1px 2px rgba(16,24,40,0.08); }
+/* Hover solo en dispositivos con puntero real (evita "hover pegado" al tocar). */
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover { background: #e9edf3; transform: translateY(-1px); box-shadow: 0 4px 10px rgba(15,23,42,0.12); }
+}
+/* Feedback de presión: el botón "responde" al clic (Emil). */
+.btn:active { transform: scale(0.97); box-shadow: 0 1px 2px rgba(15,23,42,0.08); transition-duration: 0.09s; }
 .btn-lg { font-size: 1.15rem; padding: 1rem 1.6rem; }
 
 .btn-primary {
@@ -808,8 +820,9 @@ kbd {
 /* La calculadora se abre sobre el modal de ítem: debe quedar claramente encima. */
 #modal-calculadora { z-index: 1100; }
 
-.icono-btn { background: none; border: none; cursor: pointer; font-size: 1.05rem; padding: 0.3rem; border-radius: 6px; transition: background 0.12s ease; }
+.icono-btn { background: none; border: none; cursor: pointer; font-size: 1.05rem; padding: 0.3rem; border-radius: 6px; transition: background 0.12s ease, transform 0.12s var(--ease-out-expo); }
 .icono-btn:hover { background: var(--color-border); }
+.icono-btn:active { transform: scale(0.86); }
 
 /* ---------- TOASTS ---------- */
 .toast-container {
@@ -955,6 +968,7 @@ kbd {
   white-space: nowrap;
 }
 .sidebar .tab-btn:hover { background: rgba(255,255,255,0.14); color: #fff; }
+.sidebar .tab-btn:active { transform: scale(0.98); }
 .sidebar .tab-btn.active {
   background: #fff;
   color: var(--color-primary-dark);
