@@ -31,6 +31,47 @@ export function rankingProductos({ desde, hasta } = {}) {
     .sort((a, b) => b.cantidad - a.cantidad);
 }
 
+// Costo unitario de un ítem vendido: usa el guardado en la venta; si es una
+// venta vieja (sin costo), aproxima con el precio de compra actual del producto.
+function costoDeItem(item) {
+  if (item.costoUnit !== undefined && item.costoUnit !== null) return Number(item.costoUnit) || 0;
+  const prod = db.productos.find(item.productoId);
+  return prod ? Number(prod.precioCompra) || 0 : 0;
+}
+
+// --- Ganancia real del período (venta − costo − descuentos) ---
+export function gananciaEnRango({ desde, hasta } = {}) {
+  const ventas = ventasEnRango({ desde, hasta });
+  let ventaBruta = 0, costoTotal = 0, descuentos = 0;
+  ventas.forEach(v => {
+    v.items.forEach(item => {
+      ventaBruta += item.cantidad * item.precioUnit;
+      costoTotal += item.cantidad * costoDeItem(item);
+    });
+    descuentos += Number(v.descuento) || 0;
+  });
+  const ganancia = ventaBruta - descuentos - costoTotal;
+  const margen = ventaBruta > 0 ? (ganancia / (ventaBruta - descuentos)) * 100 : 0;
+  return { ventaBruta, costoTotal, descuentos, ganancia, margen };
+}
+
+// Productos que más ganancia dejaron (de mayor a menor).
+export function rankingGanancia({ desde, hasta } = {}) {
+  const ventas = ventasEnRango({ desde, hasta });
+  const acc = new Map();
+  ventas.forEach(v => {
+    v.items.forEach(item => {
+      const prev = acc.get(item.productoId) || { nombre: item.nombre, cantidad: 0, ganancia: 0 };
+      prev.cantidad += item.cantidad;
+      prev.ganancia += item.cantidad * (item.precioUnit - costoDeItem(item));
+      acc.set(item.productoId, prev);
+    });
+  });
+  return [...acc.entries()]
+    .map(([productoId, d]) => ({ productoId, ...d }))
+    .sort((a, b) => b.ganancia - a.ganancia);
+}
+
 // Productos del inventario que NO se vendieron en el rango (baja rotación).
 export function productosSinVenta({ desde, hasta } = {}) {
   const vendidos = new Set(rankingProductos({ desde, hasta }).map(p => p.productoId));

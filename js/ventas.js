@@ -26,7 +26,12 @@ export function registrarVenta({ carrito, descuentoAplicado, metodoPago, montoRe
     turnoId: turno?.turnoId || null,
     cajero: session.username,
     fecha: new Date().toISOString(),
-    items: carrito.map(i => ({ productoId: i.id, nombre: i.nombre, cantidad: i.cantidad, precioUnit: i.precioUnit })),
+    // Se guarda el costo del momento (precio de compra) para poder calcular la
+    // ganancia real aunque el costo del producto cambie después.
+    items: carrito.map(i => {
+      const prod = db.productos.find(i.id);
+      return { productoId: i.id, nombre: i.nombre, cantidad: i.cantidad, precioUnit: i.precioUnit, costoUnit: prod ? Number(prod.precioCompra) || 0 : 0 };
+    }),
     subtotal,
     descuento: descuentoAplicado,
     total,

@@ -1,6 +1,7 @@
 import {
   rankingProductos, productosSinVenta, resumenVentas,
   aperturasEnRango, cierresEnRango, ventasPorCajero,
+  gananciaEnRango, rankingGanancia,
 } from './reportes.js';
 import { exportarReportePDF, tablaHTML, kpisHTML } from './pdf.js';
 import { getSession } from './storage.js';
@@ -23,7 +24,9 @@ function etiquetaRango() {
 function render() {
   const rango = rangoActual();
   const resumen = resumenVentas(rango);
+  const ganancia = gananciaEnRango(rango);
   const ranking = rankingProductos(rango);
+  const rentables = rankingGanancia(rango);
   const sinVenta = productosSinVenta(rango);
   const aperturas = aperturasEnRango(rango);
   const cierres = cierresEnRango(rango);
@@ -31,6 +34,7 @@ function render() {
   el('hist-kpis').innerHTML = `
     <div class="stat-tile"><span class="stat-icono">🧾</span><div><div class="stat-valor">${resumen.cantidadVentas}</div><div class="stat-label">Ventas</div></div></div>
     <div class="stat-tile"><span class="stat-icono">💰</span><div><div class="stat-valor">${money(resumen.totalVendido)}</div><div class="stat-label">Total vendido</div></div></div>
+    <div class="stat-tile"><span class="stat-icono">📈</span><div><div class="stat-valor">${money(ganancia.ganancia)}</div><div class="stat-label">Ganancia (${ganancia.margen.toFixed(0)}%)</div></div></div>
     <div class="stat-tile"><span class="stat-icono">💵</span><div><div class="stat-valor">${money(resumen.efectivo)}</div><div class="stat-label">Efectivo</div></div></div>
     <div class="stat-tile"><span class="stat-icono">📱</span><div><div class="stat-valor">${money(resumen.qr)}</div><div class="stat-label">QR</div></div></div>
     <div class="stat-tile"><span class="stat-icono">🎫</span><div><div class="stat-valor">${money(resumen.ticketPromedio)}</div><div class="stat-label">Ticket promedio</div></div></div>
@@ -42,11 +46,16 @@ function render() {
     : '<tr><td colspan="5" class="hint">Sin ventas en el rango.</td></tr>';
 
   el('hist-ranking').innerHTML = ranking.length
-    ? ranking.map((p, i) => `<tr><td>${i + 1}</td><td>${p.nombre}</td><td>${p.cantidad}</td><td>${money(p.monto)}</td></tr>`).join('')
+    ? ranking.slice(0, 50).map((p, i) => `<tr><td>${i + 1}</td><td>${p.nombre}</td><td>${p.cantidad}</td><td>${money(p.monto)}</td></tr>`).join('')
+    : '<tr><td colspan="4" class="hint">Sin ventas en el rango.</td></tr>';
+
+  el('hist-rentables').innerHTML = rentables.length
+    ? rentables.slice(0, 50).map((p, i) => `<tr><td>${i + 1}</td><td>${p.nombre}</td><td>${p.cantidad}</td><td>${money(p.ganancia)}</td></tr>`).join('')
     : '<tr><td colspan="4" class="hint">Sin ventas en el rango.</td></tr>';
 
   el('hist-sin-venta').innerHTML = sinVenta.length
-    ? sinVenta.map(p => `<tr><td>${p.codigo}</td><td>${p.nombre}</td><td>${p.categoriaRotacion}</td><td>${p.stock}</td></tr>`).join('')
+    ? sinVenta.slice(0, 50).map(p => `<tr><td>${p.codigo}</td><td>${p.nombre}</td><td>${p.categoriaRotacion}</td><td>${p.stock}</td></tr>`).join('')
+      + (sinVenta.length > 50 ? `<tr><td colspan="4" class="hint">…y ${sinVenta.length - 50} más.</td></tr>` : '')
     : '<tr><td colspan="4" class="hint">Todos los productos tuvieron ventas.</td></tr>';
 
   el('hist-aperturas').innerHTML = aperturas.length
@@ -68,7 +77,9 @@ function render() {
 function exportarPDF() {
   const rango = rangoActual();
   const resumen = resumenVentas(rango);
+  const ganancia = gananciaEnRango(rango);
   const ranking = rankingProductos(rango);
+  const rentables = rankingGanancia(rango);
   const sinVenta = productosSinVenta(rango);
   const aperturas = aperturasEnRango(rango);
   const cierres = cierresEnRango(rango);
@@ -79,6 +90,7 @@ function exportarPDF() {
     ${kpisHTML([
       { valor: resumen.cantidadVentas, etiqueta: 'Ventas' },
       { valor: money(resumen.totalVendido), etiqueta: 'Total vendido' },
+      { valor: money(ganancia.ganancia), etiqueta: `Ganancia (${ganancia.margen.toFixed(0)}%)` },
       { valor: money(resumen.efectivo), etiqueta: 'Efectivo' },
       { valor: money(resumen.qr), etiqueta: 'QR' },
       { valor: money(resumen.ticketPromedio), etiqueta: 'Ticket promedio' },
@@ -89,6 +101,9 @@ function exportarPDF() {
     <h2>Productos vendidos (mayor a menor)</h2>
     ${tablaHTML(['#', 'Producto', 'Cantidad', 'Monto'],
       ranking.map((p, i) => [i + 1, p.nombre, p.cantidad, money(p.monto)]))}
+    <h2>Productos más rentables (mayor ganancia)</h2>
+    ${tablaHTML(['#', 'Producto', 'Cantidad', 'Ganancia'],
+      rentables.map((p, i) => [i + 1, p.nombre, p.cantidad, money(p.ganancia)]))}
     <h2>Productos sin venta / baja rotación</h2>
     ${tablaHTML(['Código', 'Producto', 'Rotación', 'Stock'],
       sinVenta.map(p => [p.codigo, p.nombre, p.categoriaRotacion, p.stock]))}
