@@ -391,6 +391,30 @@ input.bloque-cant::-webkit-inner-spin-button { opacity: 0.6; }
 .reco-ganancia strong { color: var(--color-primary-dark); font-family: var(--mono); }
 .reco-sugerido { color: var(--color-primary-dark); font-family: var(--mono); font-size: 1.05rem; }
 
+/* Botón de ticket + interruptor de auto-impresión. */
+.btn-ticket { width: 100%; margin-top: 0.5rem; font-size: 0.9rem; }
+.btn:disabled { opacity: 0.5; cursor: default; }
+.switch-fila { display: flex; align-items: center; gap: 0.55rem; margin-top: 0.9rem; font-weight: 500; cursor: pointer; }
+.switch-fila input { width: auto; margin: 0; }
+
+/* Ticket para impresora térmica (Epson TM, rollo 80mm). Oculto en pantalla. */
+#ticket-print { display: none; }
+@media print {
+  body { background: #fff !important; }
+  body > *:not(#ticket-print) { display: none !important; }
+  #ticket-print { display: block; }
+  @page { size: 80mm auto; margin: 3mm; }
+  .ticket { width: 74mm; font-family: 'Courier New', ui-monospace, monospace; font-size: 12px; color: #000; line-height: 1.35; }
+  .tk-negocio { text-align: center; font-weight: 700; font-size: 15px; margin-bottom: 2px; }
+  .tk-fecha { text-align: center; font-size: 11px; }
+  .tk-sep { border-top: 1px dashed #000; margin: 5px 0; }
+  .tk-item { margin: 2px 0; }
+  .tk-nom { font-weight: 700; }
+  .tk-fila { display: flex; justify-content: space-between; gap: 8px; }
+  .tk-total { display: flex; justify-content: space-between; font-weight: 700; font-size: 14px; margin: 4px 0; }
+  .tk-gracias { text-align: center; margin-top: 6px; font-size: 12px; }
+}
+
 .venta-resumen {
   background: var(--color-card);
   border-radius: 14px;

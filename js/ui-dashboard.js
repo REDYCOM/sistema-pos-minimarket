@@ -2,15 +2,26 @@ import { db } from './storage.js';
 import { buscarProductos, tienePrecioFinal, productosConStockBajo } from './productos.js';
 import { calcularSubtotal, calcularDescuento, registrarVenta } from './ventas.js';
 import { turnoActivo, calcularEfectivoEsperado, cerrarCaja } from './caja.js';
-import { clearSession, getSession } from './storage.js';
+import { clearSession, getSession, getConfig } from './storage.js';
+import { imprimirTicket } from './ticket.js';
 import { toast } from './toast.js';
 import { abrirModal, cerrarModal, confirmar } from './modal.js';
 import { refrescarAvisos } from './avisos.js';
 import { seleccionarAlEnfocar } from './util.js';
 
 let carrito = [];
+let ultimaVenta = null; // para reimprimir el ticket sin frenar la venta
 
 const el = id => document.getElementById(id);
+
+// Tras cobrar: guarda la venta para el botón de ticket y, si está activado el
+// modo automático, la imprime. Por defecto NO imprime (no frena la venta rápida).
+function trasVenta(venta) {
+  ultimaVenta = venta;
+  const btn = el('btn-ultimo-ticket');
+  if (btn) btn.disabled = false;
+  if (getConfig().ticketAuto) imprimirTicket(venta);
+}
 
 function money(n) {
   return `Bs ${Number(n).toFixed(2)}`;
@@ -150,7 +161,7 @@ function finalizarVenta() {
 function cobrarQR() {
   if (carrito.length === 0) return toast.warning('Agrega productos al carrito primero.');
   const { descuento } = renderResumen();
-  registrarVenta({ carrito, descuentoAplicado: descuento, metodoPago: 'qr' });
+  trasVenta(registrarVenta({ carrito, descuentoAplicado: descuento, metodoPago: 'qr' }));
   toast.success('📱 Venta registrada con QR.');
   finalizarVenta();
 }
@@ -169,7 +180,7 @@ function abrirCobroEfectivo() {
 // Pago exacto: el cliente paga justo, sin cambio.
 function pagarEfectivoExacto() {
   const { total, descuento } = renderResumen();
-  registrarVenta({ carrito, descuentoAplicado: descuento, metodoPago: 'efectivo', montoRecibido: total });
+  trasVenta(registrarVenta({ carrito, descuentoAplicado: descuento, metodoPago: 'efectivo', montoRecibido: total }));
   cerrarModal(el('modal-efectivo'));
   toast.success('⚡ Pago exacto registrado.');
   finalizarVenta();
@@ -183,7 +194,7 @@ function confirmarEfectivo() {
     el('efectivo-error').classList.remove('hidden');
     return;
   }
-  registrarVenta({ carrito, descuentoAplicado: descuento, metodoPago: 'efectivo', montoRecibido: recibido });
+  trasVenta(registrarVenta({ carrito, descuentoAplicado: descuento, metodoPago: 'efectivo', montoRecibido: recibido }));
   cerrarModal(el('modal-efectivo'));
   toast.success('💵 Venta cobrada en efectivo.');
   finalizarVenta();
@@ -272,6 +283,7 @@ export function initDashboard() {
   el('btn-cancelar-venta').addEventListener('click', cancelarVenta);
   el('btn-cobrar-qr').addEventListener('click', cobrarQR);
   el('btn-cobrar-efectivo').addEventListener('click', abrirCobroEfectivo);
+  el('btn-ultimo-ticket').addEventListener('click', () => { if (ultimaVenta) imprimirTicket(ultimaVenta); });
 
   el('efectivo-recibido').addEventListener('input', () => {
     const { total } = renderResumen();

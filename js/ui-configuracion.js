@@ -9,8 +9,15 @@ import { confirmar, abrirModal, cerrarModal } from './modal.js';
 import { db, getSession, resetearTodo } from './storage.js';
 import { verifyPassword } from './crypto.js';
 import { exportarInventarioExcel, importarInventarioExcel } from './backup.js';
+import { imprimirTicketPrueba } from './ticket.js';
 
 const el = id => document.getElementById(id);
+
+function renderTicketConfig() {
+  const c = getConfig();
+  el('ticket-negocio-input').value = c.nombreNegocio || '';
+  el('ticket-auto-check').checked = !!c.ticketAuto;
+}
 
 function renderRespaldo() {
   el('respaldo-cantidad').textContent = db.productos.all().length;
@@ -195,14 +202,23 @@ export function initConfiguracion() {
   el('btn-reset-respaldo').addEventListener('click', exportarInventarioExcel);
   el('btn-confirmar-reset').addEventListener('click', ejecutarReset);
 
+  // Ticket / impresión (config por dispositivo).
+  el('btn-guardar-ticket-config').addEventListener('click', () => {
+    setConfig({ nombreNegocio: el('ticket-negocio-input').value.trim(), ticketAuto: el('ticket-auto-check').checked });
+    toast.success('🧾 Configuración del ticket guardada.');
+  });
+  el('btn-ticket-prueba').addEventListener('click', imprimirTicketPrueba);
+
   renderPreview();
   renderMargenes();
   renderCatalogos();
   renderRespaldo();
+  renderTicketConfig();
 }
 
 export function refrescarConfiguracion() {
   renderMargenes();
   renderCatalogos();
   renderRespaldo();
+  renderTicketConfig();
 }

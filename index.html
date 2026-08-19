@@ -152,6 +152,7 @@
           <button id="btn-cobrar-qr" class="btn btn-primary btn-lg">📱 QR</button>
           <button id="btn-cancelar-venta" class="btn btn-danger btn-lg">🗑️ Cancelar venta</button>
         </div>
+        <button type="button" id="btn-ultimo-ticket" class="btn btn-ticket" disabled>🧾 Imprimir último ticket</button>
         <div class="atajos">
           <span class="atajos-titulo">⌨️ Atajos</span>
           <span class="atajo"><kbd>Enter</kbd> Cobrar QR</span>
@@ -583,6 +584,18 @@
       </div>
     </div>
 
+    <div class="card card-narrow">
+      <h2>🧾 Ticket / impresión</h2>
+      <p class="hint">Para imprimir con tu impresora térmica (Epson TM, rollo 80mm): instálala como impresora de Windows y elígela en el diálogo de impresión, con el tamaño de papel del rollo. La impresión del ticket es <strong>opcional</strong> y no frena la venta.</p>
+      <label>Nombre del negocio (encabezado del ticket)</label>
+      <input type="text" id="ticket-negocio-input" placeholder="Ej. Minimarket El Sol">
+      <label class="switch-fila"><input type="checkbox" id="ticket-auto-check"> Imprimir el ticket automáticamente al cobrar</label>
+      <div class="modal-botones modal-botones-left">
+        <button type="button" id="btn-guardar-ticket-config" class="btn btn-primary">💾 Guardar</button>
+        <button type="button" id="btn-ticket-prueba" class="btn">🖨️ Imprimir ticket de prueba</button>
+      </div>
+    </div>
+
     <div class="card">
       <h2>📊 Márgenes de ganancia por rotación</h2>
       <p class="hint">Definen el precio de venta <strong>sugerido</strong> (referencial). El precio final siempre se asigna manualmente.</p>
@@ -807,6 +820,9 @@
     </div>
   </div>
 </div>
+
+<!-- Contenedor del ticket para imprimir (oculto en pantalla, visible al imprimir) -->
+<div id="ticket-print"></div>
 
 <script type="module" src="js/app.js"></script>
 <script>
