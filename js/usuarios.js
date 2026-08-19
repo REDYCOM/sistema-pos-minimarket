@@ -1,4 +1,5 @@
-import { db, uid, getSession } from './storage.js';
+import { db, uid, getSession, getAjustes, setAjustes } from './storage.js';
+import { hashPassword, verifyPassword } from './crypto.js';
 
 export function listarUsuarios() {
   return db.users.all().slice().sort((a, b) => a.username.localeCompare(b.username));
@@ -8,14 +9,16 @@ export function existeUsuario(username) {
   return db.users.all().some(u => u.username.toLowerCase() === username.toLowerCase());
 }
 
-export function crearUsuario(username, role) {
+// El admin crea el usuario con su contraseña (queda activo de inmediato).
+export async function crearUsuario(username, role, password) {
+  const { salt, hash } = await hashPassword(password);
   const usuario = {
     id: uid(),
     username,
     role, // 'admin' | 'cajero'
-    salt: null,
-    hash: null,
-    mustChangePassword: true,
+    salt,
+    hash,
+    mustChangePassword: false,
     createdAt: new Date().toISOString(),
   };
   db.users.add(usuario);
@@ -26,15 +29,33 @@ export function cambiarRol(id, role) {
   return db.users.update(id, { role });
 }
 
-// Solo el admin puede hacer esto (la pantalla ya está restringida a admin):
-// deja al usuario sin contraseña para que defina una nueva en su próximo ingreso,
-// igual que el flujo de primera vez.
-export function resetearContrasena(id) {
-  return db.users.update(id, { salt: null, hash: null, mustChangePassword: true });
+// El admin cambia directamente la contraseña de un usuario.
+export async function cambiarContrasena(id, password) {
+  const { salt, hash } = await hashPassword(password);
+  return db.users.update(id, { salt, hash, mustChangePassword: false });
 }
 
 function cantidadAdmins() {
   return db.users.all().filter(u => u.role === 'admin').length;
+}
+
+export function usuarioPorNombre(username) {
+  return db.users.all().find(u => u.username.toLowerCase() === username.trim().toLowerCase()) || null;
+}
+
+// --- Clave maestra de recuperación (para recuperar acceso de admin) ---
+// Se guarda cifrada (SHA-256 + salt) dentro de los ajustes del negocio.
+export function tieneClaveMaestra() {
+  return !!getAjustes().recoveryHash;
+}
+export async function setClaveMaestra(password) {
+  const { salt, hash } = await hashPassword(password);
+  setAjustes({ recoverySalt: salt, recoveryHash: hash });
+}
+export async function verificarClaveMaestra(password) {
+  const aj = getAjustes();
+  if (!aj.recoveryHash || !aj.recoverySalt) return false;
+  return verifyPassword(password, aj.recoverySalt, aj.recoveryHash);
 }
 
 export function eliminarUsuario(id) {

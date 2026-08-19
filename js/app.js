@@ -12,7 +12,9 @@ import { initUsuarios, refrescarUsuarios } from './ui-usuarios.js';
 import { initHistorial, refrescarHistorial } from './ui-historial.js';
 import { initEstadisticas, refrescarEstadisticas } from './ui-estadisticas.js';
 import { initCalculadora } from './calculadora-costo.js';
-import { initModales } from './modal.js';
+import { initModales, abrirModal, cerrarModal } from './modal.js';
+import { toast } from './toast.js';
+import { verificarClaveMaestra, usuarioPorNombre, cambiarContrasena, tieneClaveMaestra } from './usuarios.js';
 import { initAvisos, refrescarAvisos } from './avisos.js';
 import { initRuedaNumeros } from './util.js';
 
@@ -190,12 +192,43 @@ function initLogout() {
   });
 }
 
+function initRecuperar() {
+  el('btn-abrir-recuperar').addEventListener('click', () => {
+    el('form-recuperar').reset();
+    el('recuperar-error').classList.add('hidden');
+    abrirModal(el('modal-recuperar'));
+    el('recuperar-username').focus();
+  });
+  el('btn-cerrar-recuperar').addEventListener('click', () => cerrarModal(el('modal-recuperar')));
+  el('form-recuperar').addEventListener('submit', async e => {
+    e.preventDefault();
+    const errEl = el('recuperar-error');
+    errEl.classList.add('hidden');
+    const mostrarError = msg => { errEl.textContent = msg; errEl.classList.remove('hidden'); };
+    const username = el('recuperar-username').value.trim();
+    const maestra = el('recuperar-maestra').value;
+    const nueva = el('recuperar-nueva').value;
+    if (!tieneClaveMaestra()) return mostrarError('No hay clave maestra configurada. Pídele a un admin que la configure en Configuración.');
+    if (nueva.length < 4) return mostrarError('La nueva contraseña debe tener al menos 4 caracteres.');
+    if (!(await verificarClaveMaestra(maestra))) return mostrarError('Clave maestra incorrecta.');
+    const usuario = usuarioPorNombre(username);
+    if (!usuario) return mostrarError(`No existe el usuario "${username}".`);
+    await cambiarContrasena(usuario.id, nueva);
+    cerrarModal(el('modal-recuperar'));
+    toast.success(`✅ Contraseña de "${usuario.username}" restablecida. Ya puedes ingresar.`);
+    el('login-username').value = usuario.username;
+    el('login-password').value = '';
+    el('login-password').focus();
+  });
+}
+
 async function init() {
   const vEl = el('app-version');
   if (vEl) vEl.textContent = APP_VERSION;
   aplicarLogoGuardado();
 
   initLoginForm();
+  initRecuperar();
   initSetPasswordForm();
   initAperturaForm();
   initSidebar();

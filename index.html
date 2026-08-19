@@ -36,6 +36,7 @@
       <p id="login-error" class="error hidden"></p>
       <button type="submit" class="btn btn-primary btn-lg">🔓 Ingresar</button>
     </form>
+    <button type="button" id="btn-abrir-recuperar" class="link-recuperar">🔑 Recuperar acceso de administrador</button>
   </div>
 </section>
 
@@ -557,6 +558,17 @@
       </table>
     </div>
 
+    <div class="card card-narrow">
+      <h2>🔐 Clave maestra de recuperación</h2>
+      <p class="hint">Permite recuperar el acceso si un administrador olvida su contraseña (con el enlace "Recuperar acceso" del login). Guárdala en un lugar muy seguro: con ella se puede resetear cualquier contraseña.</p>
+      <p id="clave-maestra-estado" class="hint"></p>
+      <label>Nueva clave maestra</label>
+      <input type="password" id="clave-maestra-input" autocomplete="new-password" placeholder="Mínimo 6 caracteres">
+      <div class="modal-botones modal-botones-left">
+        <button type="button" id="btn-guardar-clave-maestra" class="btn btn-primary">💾 Guardar clave maestra</button>
+      </div>
+    </div>
+
     <div class="card">
       <h2>📊 Márgenes de ganancia por rotación</h2>
       <p class="hint">Definen el precio de venta <strong>sugerido</strong> (referencial). El precio final siempre se asigna manualmente.</p>
@@ -636,10 +648,48 @@
         <option value="cajero">Cajero</option>
         <option value="admin">Admin</option>
       </select>
-      <p class="hint">Definirá su propia contraseña en su primer ingreso, igual que hiciste tú.</p>
+      <label>Contraseña</label>
+      <input type="password" id="nuevo-usuario-pass" required autocomplete="new-password" placeholder="Mínimo 4 caracteres">
       <div class="modal-botones">
         <button type="button" id="btn-cerrar-modal-usuario" class="btn">✖️ Cancelar</button>
         <button type="submit" class="btn btn-primary">💾 Crear</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL RECUPERAR ACCESO (clave maestra) -->
+<div id="modal-recuperar" class="modal hidden">
+  <div class="modal-content card-narrow">
+    <h2>🔑 Recuperar acceso</h2>
+    <p class="hint">Si un administrador olvidó su contraseña, ingresa la <strong>clave maestra de recuperación</strong> para asignarle una nueva.</p>
+    <form id="form-recuperar">
+      <label>Usuario del administrador</label>
+      <input type="text" id="recuperar-username" autocomplete="off" required>
+      <label>Clave maestra de recuperación</label>
+      <input type="password" id="recuperar-maestra" autocomplete="off" required>
+      <label>Nueva contraseña para ese usuario</label>
+      <input type="password" id="recuperar-nueva" autocomplete="new-password" required placeholder="Mínimo 4 caracteres">
+      <p id="recuperar-error" class="error hidden"></p>
+      <div class="modal-botones">
+        <button type="button" id="btn-cerrar-recuperar" class="btn">✖️ Cancelar</button>
+        <button type="submit" class="btn btn-primary">🔓 Restablecer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL CAMBIAR CONTRASEÑA -->
+<div id="modal-cambiar-pass" class="modal hidden">
+  <div class="modal-content card-narrow">
+    <h2>🔑 Cambiar contraseña</h2>
+    <form id="form-cambiar-pass">
+      <p class="hint">Usuario: <strong id="cambiar-pass-username"></strong></p>
+      <label>Nueva contraseña</label>
+      <input type="password" id="cambiar-pass-nueva" required autocomplete="new-password" placeholder="Mínimo 4 caracteres">
+      <div class="modal-botones">
+        <button type="button" id="btn-cerrar-cambiar-pass" class="btn">✖️ Cancelar</button>
+        <button type="submit" class="btn btn-primary">💾 Guardar</button>
       </div>
     </form>
   </div>

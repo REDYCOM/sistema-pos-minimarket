@@ -380,6 +380,9 @@ input.bloque-cant::-webkit-inner-spin-button { opacity: 0.6; }
 .celda-edit:hover { color: var(--color-primary-dark); border-bottom-color: var(--color-primary); }
 .celda-inline-select { max-width: 190px; padding: 0.25rem 0.4rem; font-size: 0.9rem; }
 
+.link-recuperar { display: block; width: 100%; margin-top: 0.9rem; background: none; border: none; color: var(--color-primary-dark); font-size: 0.85rem; font-weight: 600; cursor: pointer; text-decoration: underline; transition: color 0.12s ease; }
+.link-recuperar:hover { color: var(--color-primary); }
+
 .venta-resumen {
   background: var(--color-card);
   border-radius: 14px;
