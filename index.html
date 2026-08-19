@@ -167,6 +167,7 @@
   <div class="tab-content" id="tab-inventario">
     <div class="toolbar">
       <input type="text" id="inv-buscar" class="input-lg" placeholder="Buscar por nombre o código...">
+      <select id="inv-filtro-proveedor" class="input-lg"><option value="">Todos los proveedores</option></select>
       <select id="inv-filtro-categoria" class="input-lg"><option value="">Todas las categorías</option></select>
       <select id="inv-filtro-stock" class="input-lg">
         <option value="">Stock: todos</option>
@@ -649,6 +650,17 @@
         <input type="file" id="input-respaldo" accept=".xlsx,.xls" class="hidden">
       </div>
       <p class="hint">Al recuperar: los productos con el mismo código se <strong>actualizan</strong> y los nuevos se <strong>agregan</strong> (no borra los existentes).</p>
+    </div>
+
+    <div class="card">
+      <h2>🗄️ Respaldo completo (todos los datos)</h2>
+      <p class="hint">Descarga <strong>TODO</strong> en un solo archivo: ventas, compras, devoluciones, caja, productos y usuarios. Guárdalo cada tanto en un lugar seguro (USB, correo, la nube). Sirve para restaurar si algo se borra en la base de datos.</p>
+      <div class="modal-botones modal-botones-left">
+        <button type="button" id="btn-respaldo-completo-descargar" class="btn btn-primary">📤 Descargar respaldo completo</button>
+        <button type="button" id="btn-respaldo-completo-restaurar" class="btn">📥 Restaurar desde archivo</button>
+        <input type="file" id="input-respaldo-completo" accept=".json" class="hidden">
+      </div>
+      <p class="hint">Al restaurar, se vuelven a cargar los registros del archivo. Recargá la página después.</p>
     </div>
 
     <div class="card card-peligro">

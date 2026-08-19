@@ -8,7 +8,7 @@ import { toast } from './toast.js';
 import { confirmar, abrirModal, cerrarModal } from './modal.js';
 import { db, getSession, resetearTodo } from './storage.js';
 import { verifyPassword } from './crypto.js';
-import { exportarInventarioExcel, importarInventarioExcel } from './backup.js';
+import { exportarInventarioExcel, importarInventarioExcel, exportarRespaldoCompleto, importarRespaldoCompleto } from './backup.js';
 import { imprimirTicketPrueba } from './ticket.js';
 
 const el = id => document.getElementById(id);
@@ -201,6 +201,18 @@ export function initConfiguracion() {
   el('btn-cerrar-modal-reset').addEventListener('click', () => cerrarModal(el('modal-reset')));
   el('btn-reset-respaldo').addEventListener('click', exportarInventarioExcel);
   el('btn-confirmar-reset').addEventListener('click', ejecutarReset);
+
+  // Respaldo completo (todos los datos, JSON).
+  el('btn-respaldo-completo-descargar').addEventListener('click', exportarRespaldoCompleto);
+  el('btn-respaldo-completo-restaurar').addEventListener('click', () => el('input-respaldo-completo').click());
+  el('input-respaldo-completo').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    if (await confirmar('¿Restaurar el respaldo completo? Se volverán a cargar todos los registros del archivo sobre los actuales.', { aceptar: 'Sí, restaurar', peligro: true })) {
+      importarRespaldoCompleto(file);
+    }
+  });
 
   // Ticket / impresión (config por dispositivo).
   el('btn-guardar-ticket-config').addEventListener('click', () => {

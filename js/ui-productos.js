@@ -41,13 +41,24 @@ function poblarCategorias() {
   select.value = actual;
 }
 
+function poblarProveedoresInv() {
+  const select = el('inv-filtro-proveedor');
+  const actual = select.value;
+  select.innerHTML = '<option value="">Todos los proveedores</option>' +
+    listarProveedores().map(p => `<option value="${p}">${p}</option>`).join('');
+  select.value = actual;
+}
+
 function renderInventario() {
   poblarCategorias();
+  poblarProveedoresInv();
   const query = el('inv-buscar').value;
+  const proveedor = el('inv-filtro-proveedor').value;
   const categoria = el('inv-filtro-categoria').value;
   const filtroStock = el('inv-filtro-stock').value;
 
   let productos = buscarProductos(query);
+  if (proveedor) productos = productos.filter(p => (p.proveedor || '') === proveedor);
   if (categoria) productos = productos.filter(p => p.categoria === categoria);
   if (filtroStock === 'bajo') productos = productos.filter(p => p.stock < p.stockMinimo);
   if (filtroStock === 'alto') productos = productos.filter(p => p.stock >= p.stockMinimo * 2);
@@ -104,9 +115,9 @@ function renderProductos() {
       <td>${p.nombre}</td>
       <td><span class="celda-edit" data-id="${p.id}" data-campo="categoria" title="Clic para cambiar la categoría">${p.categoria || '<span class="hint">— asignar —</span>'}</span></td>
       <td><span class="celda-edit" data-id="${p.id}" data-campo="proveedor" title="Clic para cambiar el proveedor">${p.proveedor || '<span class="hint">— asignar —</span>'}</span></td>
-      <td>${celdaStock(p)}</td>
-      <td>${money(p.precioCompra)}</td>
-      <td>${tienePrecioFinal(p) ? money(p.precioVentaFinal) : '<span class="texto-alerta">⚠️ Sin precio</span>'}</td>
+      <td><input type="number" min="0" step="1" value="${p.stock}" data-id="${p.id}" class="prod-stock-input celda-num-input" title="Editar stock"></td>
+      <td><input type="number" min="0" step="0.01" value="${p.precioCompra}" data-id="${p.id}" class="prod-compra-input celda-num-input" title="Editar precio de compra"></td>
+      <td><input type="number" min="0" step="0.01" value="${p.precioVentaFinal ?? ''}" data-id="${p.id}" class="prod-venta-input celda-num-input ${tienePrecioFinal(p) ? '' : 'sin-precio'}" placeholder="— sin precio —" title="Editar precio de venta"></td>
       <td>
         <button class="icono-btn editar-producto" data-id="${p.id}" title="Editar">✏️</button>
         <button class="icono-btn eliminar-producto" data-id="${p.id}" title="Eliminar">🗑️</button>
@@ -187,8 +198,9 @@ function renderTodo() {
 }
 
 export function initProductosInventario() {
-  ['inv-buscar', 'inv-filtro-categoria', 'inv-filtro-stock'].forEach(id =>
+  ['inv-buscar', 'inv-filtro-proveedor', 'inv-filtro-categoria', 'inv-filtro-stock'].forEach(id =>
     el(id).addEventListener('input', renderInventario));
+  el('inv-filtro-proveedor').addEventListener('change', renderInventario);
   el('inv-filtro-categoria').addEventListener('change', renderInventario);
   el('inv-filtro-stock').addEventListener('change', renderInventario);
 
@@ -205,6 +217,21 @@ export function initProductosInventario() {
   el('input-importar-excel').addEventListener('change', e => {
     if (e.target.files[0]) importarInventarioExcel(e.target.files[0], renderTodo);
     e.target.value = '';
+  });
+
+  // Edición directa de stock / precio de compra / precio de venta en la lista.
+  el('productos-body').addEventListener('change', e => {
+    const t = e.target;
+    const id = t.dataset.id;
+    if (!id) return;
+    let patch = null;
+    if (t.classList.contains('prod-stock-input')) patch = { stock: Number(t.value) || 0 };
+    else if (t.classList.contains('prod-compra-input')) patch = { precioCompra: Number(t.value) || 0 };
+    else if (t.classList.contains('prod-venta-input')) patch = { precioVentaFinal: t.value === '' ? null : Number(t.value) };
+    else return;
+    db.productos.update(id, patch);
+    if (patch.precioVentaFinal !== undefined) t.classList.toggle('sin-precio', patch.precioVentaFinal === null);
+    toast.success('✅ Guardado.');
   });
 
   el('prod-buscar').addEventListener('input', renderProductos);

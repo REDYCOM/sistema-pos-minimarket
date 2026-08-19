@@ -1,6 +1,56 @@
-import { db } from './storage.js';
+import { db, getAjustes, setAjustes } from './storage.js';
 import { crearProducto, actualizarProducto } from './productos.js';
 import { toast } from './toast.js';
+
+// --- Respaldo COMPLETO (todos los datos, en un archivo JSON) ---
+const COLECCIONES = ['users', 'productos', 'ventas', 'aperturas', 'cierres', 'movimientos', 'compras', 'devoluciones'];
+
+export function exportarRespaldoCompleto() {
+  try {
+    const colecciones = {};
+    COLECCIONES.forEach(n => { colecciones[n] = db[n] ? db[n].all() : []; });
+    const datos = {
+      _tipo: 'respaldo-pos-minimarket',
+      _version: 1,
+      _fecha: new Date().toISOString(),
+      colecciones,
+      ajustes: getAjustes(),
+    };
+    const blob = new Blob([JSON.stringify(datos)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `respaldo-completo-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast.success('📤 Respaldo completo descargado.');
+  } catch (e) {
+    toast.error('No se pudo generar el respaldo completo.');
+  }
+}
+
+export async function importarRespaldoCompleto(file, onDone) {
+  try {
+    const datos = JSON.parse(await file.text());
+    if (datos._tipo !== 'respaldo-pos-minimarket' || !datos.colecciones) {
+      toast.error('El archivo no es un respaldo válido.');
+      return;
+    }
+    let total = 0;
+    COLECCIONES.forEach(nombre => {
+      const items = datos.colecciones[nombre];
+      if (!db[nombre] || !Array.isArray(items)) return;
+      items.forEach(item => { if (item && item.id) { db[nombre].add(item); total++; } });
+    });
+    if (datos.ajustes) setAjustes(datos.ajustes);
+    toast.success(`📥 Respaldo restaurado: ${total} registros. Recargá la página para verlo todo.`);
+    if (onDone) onDone({ total });
+  } catch (e) {
+    toast.error('No se pudo leer el respaldo (¿archivo dañado?).');
+  }
+}
 
 // Respaldo del inventario en Excel real (.xlsx) usando SheetJS (vendorizado en
 // js/vendor para funcionar offline). Se ve en filas y columnas, fácil de rellenar
