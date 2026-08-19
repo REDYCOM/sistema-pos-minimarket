@@ -92,6 +92,7 @@
       <button class="tab-btn" data-tab="dinero">💵 <span>Entrada/Salida</span><kbd class="tab-fkey">F4</kbd></button>
       <button class="tab-btn" data-tab="compras">🧾 <span>Compras</span><kbd class="tab-fkey">F5</kbd></button>
       <button class="tab-btn" data-tab="devoluciones">↩️ <span>Devoluciones</span><kbd class="tab-fkey">F6</kbd></button>
+      <button class="tab-btn hidden" data-tab="recomendaciones" id="tab-btn-recomendaciones">💡 <span>Recomendaciones</span></button>
       <button class="tab-btn hidden" data-tab="historial" id="tab-btn-historial">📊 <span>Ventas/Historial</span></button>
       <button class="tab-btn hidden" data-tab="estadisticas" id="tab-btn-estadisticas">📈 <span>Estadísticas</span></button>
       <button class="tab-btn hidden" data-tab="configuracion" id="tab-btn-configuracion">⚙️ <span>Configuración</span></button>
@@ -459,6 +460,13 @@
       <thead><tr><th>Fecha</th><th>Productos</th><th>Total</th><th>Reembolso</th><th>Motivo</th><th>Cajero</th></tr></thead>
       <tbody id="devoluciones-body"></tbody>
     </table>
+  </div>
+
+  <!-- TAB RECOMENDACIONES (solo admin) -->
+  <div class="tab-content" id="tab-recomendaciones">
+    <div class="seccion-header"><h2>💡 Recomendaciones de compra</h2></div>
+    <p class="hint">Productos con <strong>stock bajo que se están vendiendo</strong>, priorizados por la ganancia que mueven y agrupados por proveedor (según las ventas de los últimos 30 días). El stock bajo que no rota no aparece aquí.</p>
+    <div id="recomendaciones-lista"></div>
   </div>
 
   <!-- TAB VENTAS / HISTORIAL (solo admin) -->

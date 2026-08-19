@@ -10,6 +10,7 @@ import { initCompras, refrescarCompras } from './ui-compras.js';
 import { initDevoluciones, refrescarDevoluciones } from './ui-devoluciones.js';
 import { initUsuarios, refrescarUsuarios } from './ui-usuarios.js';
 import { initHistorial, refrescarHistorial } from './ui-historial.js';
+import { initRecomendaciones, refrescarRecomendaciones } from './ui-recomendaciones.js';
 import { initEstadisticas, refrescarEstadisticas } from './ui-estadisticas.js';
 import { initCalculadora } from './calculadora-costo.js';
 import { initModales, abrirModal, cerrarModal } from './modal.js';
@@ -56,7 +57,7 @@ function goToApertura() {
 function goToDashboard() {
   const session = getSession();
   const esAdmin = session.role === 'admin';
-  ['tab-btn-configuracion', 'tab-btn-historial', 'tab-btn-estadisticas']
+  ['tab-btn-configuracion', 'tab-btn-historial', 'tab-btn-estadisticas', 'tab-btn-recomendaciones']
     .forEach(id => el(id).classList.toggle('hidden', !esAdmin));
   refrescarDashboard();
   refrescarProductosInventario();
@@ -174,6 +175,8 @@ function initTabs() {
         refrescarCompras();
       } else if (btn.dataset.tab === 'devoluciones') {
         refrescarDevoluciones();
+      } else if (btn.dataset.tab === 'recomendaciones') {
+        refrescarRecomendaciones();
       } else if (btn.dataset.tab === 'historial') {
         refrescarHistorial();
       } else if (btn.dataset.tab === 'estadisticas') {
@@ -242,6 +245,7 @@ async function init() {
   initConfiguracion();
   initCompras();
   initDevoluciones();
+  initRecomendaciones();
   initUsuarios();
   initHistorial();
   initEstadisticas();

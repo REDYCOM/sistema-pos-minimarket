@@ -126,6 +126,53 @@ export function cierresEnRango({ desde, hasta } = {}) {
     .sort((a, b) => b.fecha.localeCompare(a.fecha));
 }
 
+// --- Recomendaciones de compra ---
+function fechaHaceDias(dias) {
+  const d = new Date();
+  d.setDate(d.getDate() - dias);
+  return d.toISOString().slice(0, 10);
+}
+
+// Productos con stock bajo que ADEMÁS se venden, priorizados por la ganancia que
+// mueven, agrupados por proveedor. Ignora el stock bajo que no rota (stock muerto).
+export function recomendacionesCompra({ dias = 30 } = {}) {
+  const desde = fechaHaceDias(dias);
+  const movMap = new Map();
+  rankingProductos({ desde }).forEach(p => movMap.set(p.productoId, p.cantidad));
+
+  const candidatos = db.productos.all()
+    .filter(p => Number(p.stock) <= 0 || Number(p.stock) < Number(p.stockMinimo || 0))
+    .map(p => {
+      const mov = movMap.get(p.id) || 0;
+      const margen = (Number(p.precioVentaFinal) || 0) - (Number(p.precioCompra) || 0);
+      const gananciaPotencial = mov * Math.max(0, margen);
+      const sugerido = Math.max(1, Math.round(mov) - Number(p.stock));
+      const urgencia = Number(p.stock) <= 0 ? 1.6 : 1; // agotado = más urgente
+      const score = gananciaPotencial * urgencia + mov * 0.01;
+      return {
+        id: p.id, nombre: p.nombre, proveedor: p.proveedor || '',
+        stock: Number(p.stock) || 0, stockMinimo: Number(p.stockMinimo) || 0,
+        mov, margen, gananciaPotencial, sugerido, score,
+      };
+    })
+    .filter(p => p.mov > 0)
+    .sort((a, b) => b.score - a.score);
+
+  const porProveedor = new Map();
+  candidatos.forEach(p => {
+    const prov = p.proveedor || '— Sin proveedor —';
+    if (!porProveedor.has(prov)) porProveedor.set(prov, []);
+    porProveedor.get(prov).push(p);
+  });
+
+  return [...porProveedor.entries()]
+    .map(([proveedor, items]) => ({
+      proveedor, items,
+      gananciaTotal: items.reduce((s, p) => s + p.gananciaPotencial, 0),
+    }))
+    .sort((a, b) => b.gananciaTotal - a.gananciaTotal);
+}
+
 // --- Serie diaria de ventas (para gráficos y proyección) ---
 export function serieDiaria({ desde, hasta } = {}) {
   const ventas = ventasEnRango({ desde, hasta });

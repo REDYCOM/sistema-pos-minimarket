@@ -383,6 +383,14 @@ input.bloque-cant::-webkit-inner-spin-button { opacity: 0.6; }
 .link-recuperar { display: block; width: 100%; margin-top: 0.9rem; background: none; border: none; color: var(--color-primary-dark); font-size: 0.85rem; font-weight: 600; cursor: pointer; text-decoration: underline; transition: color 0.12s ease; }
 .link-recuperar:hover { color: var(--color-primary); }
 
+/* Recomendaciones de compra (agrupadas por proveedor). */
+.reco-grupo { margin-bottom: 1rem; }
+.reco-cabecera { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
+.reco-cabecera h3 { margin: 0; }
+.reco-ganancia { font-size: 0.85rem; color: var(--color-muted); }
+.reco-ganancia strong { color: var(--color-primary-dark); font-family: var(--mono); }
+.reco-sugerido { color: var(--color-primary-dark); font-family: var(--mono); font-size: 1.05rem; }
+
 .venta-resumen {
   background: var(--color-card);
   border-radius: 14px;
