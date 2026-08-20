@@ -149,9 +149,17 @@ function renderHistorial() {
   el('compras-body').innerHTML = compras.length
     ? compras.map(c => {
         // Compras nuevas traen `items`; las antiguas solo `producto`.
-        const resumenItems = Array.isArray(c.items)
-          ? c.items.map(i => `${i.nombre} ×${i.cantidad}`).join(', ')
-          : (c.producto || '—');
+        // Vista compacta: "N productos · M uds" para no llenar la fila de texto.
+        // El detalle completo queda en el title (al pasar el mouse) y en el PDF.
+        let resumenItems, detalle;
+        if (Array.isArray(c.items)) {
+          const nProd = c.items.length;
+          const nUds = c.items.reduce((s, i) => s + (Number(i.cantidad) || 0), 0);
+          detalle = c.items.map(i => `${i.nombre} ×${i.cantidad}`).join(', ');
+          resumenItems = `<span class="compra-resumen" title="${detalle.replace(/"/g, '&quot;')}">${nProd} producto${nProd === 1 ? '' : 's'} · ${nUds} uds</span>`;
+        } else {
+          resumenItems = c.producto || '—';
+        }
         const pago = c.formaPago === 'caja'
           ? '<span class="chip chip-alerta">Caja</span>'
           : c.formaPago === 'aparte'

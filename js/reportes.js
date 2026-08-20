@@ -187,6 +187,30 @@ export function recomendacionesCompra({ dias = 30 } = {}) {
     .sort((a, b) => b.gananciaTotal - a.gananciaTotal);
 }
 
+// --- Ventas agrupadas por día (resumen diario: cuánto se vendió cada día) ---
+// Devuelve una fila por día con cantidad de ventas, efectivo, QR, total y ganancia.
+// Ordenado del día más reciente al más antiguo.
+export function ventasPorDia({ desde, hasta } = {}) {
+  const ventas = ventasEnRango({ desde, hasta });
+  const porDia = new Map(); // 'YYYY-MM-DD' -> { cantidad, efectivo, qr, total, ganancia }
+  ventas.forEach(v => {
+    const dia = soloFecha(v.fecha);
+    const prev = porDia.get(dia) || { dia, cantidad: 0, efectivo: 0, qr: 0, total: 0, ganancia: 0 };
+    prev.cantidad += 1;
+    prev.total += v.total;
+    if (v.metodoPago === 'efectivo') prev.efectivo += v.total;
+    else if (v.metodoPago === 'qr') prev.qr += v.total;
+    let ventaBruta = 0, costoTotal = 0;
+    v.items.forEach(item => {
+      ventaBruta += item.cantidad * item.precioUnit;
+      costoTotal += item.cantidad * costoDeItem(item);
+    });
+    prev.ganancia += ventaBruta - (Number(v.descuento) || 0) - costoTotal;
+    porDia.set(dia, prev);
+  });
+  return [...porDia.values()].sort((a, b) => b.dia.localeCompare(a.dia));
+}
+
 // --- Serie diaria de ventas (para gráficos y proyección) ---
 export function serieDiaria({ desde, hasta } = {}) {
   const ventas = ventasEnRango({ desde, hasta });

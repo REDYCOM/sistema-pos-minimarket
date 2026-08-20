@@ -475,13 +475,22 @@
   <div class="tab-content" id="tab-historial">
     <div class="seccion-header">
       <h2>📊 Ventas e Historial</h2>
-      <button id="btn-hist-pdf" class="btn btn-primary">📄 Exportar PDF</button>
+      <div class="seccion-header-derecha">
+        <button id="btn-hist-pdf-dias" class="btn">📅 Exportar por días</button>
+        <button id="btn-hist-pdf" class="btn btn-primary">📄 Exportar PDF</button>
+      </div>
     </div>
     <div class="toolbar">
       <label class="filtro-fecha">Desde <input type="date" id="hist-desde"></label>
       <label class="filtro-fecha">Hasta <input type="date" id="hist-hasta"></label>
     </div>
     <div id="hist-kpis" class="stat-grid"></div>
+
+    <h3 class="sub-titulo">📅 Ventas por día</h3>
+    <table class="tabla-datos">
+      <thead><tr><th>Fecha</th><th>Ventas</th><th>Efectivo</th><th>QR</th><th>Total</th><th>Ganancia</th></tr></thead>
+      <tbody id="hist-por-dia"></tbody>
+    </table>
 
     <h3 class="sub-titulo">👤 Ventas por cajero</h3>
     <table class="tabla-datos">
