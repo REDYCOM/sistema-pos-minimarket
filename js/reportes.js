@@ -126,6 +126,20 @@ export function cierresEnRango({ desde, hasta } = {}) {
     .sort((a, b) => b.fecha.localeCompare(a.fecha));
 }
 
+// --- Valor del inventario (capital en stock) ---
+export function valorInventario() {
+  let costo = 0, venta = 0, unidades = 0;
+  const productos = db.productos.all();
+  productos.forEach(p => {
+    const stock = Number(p.stock) || 0;
+    unidades += stock;
+    costo += stock * (Number(p.precioCompra) || 0);
+    const pv = Number(p.precioVentaFinal);
+    venta += stock * (Number.isFinite(pv) ? pv : 0);
+  });
+  return { costo, venta, ganancia: venta - costo, unidades, productos: productos.length };
+}
+
 // --- Recomendaciones de compra ---
 function fechaHaceDias(dias) {
   const d = new Date();

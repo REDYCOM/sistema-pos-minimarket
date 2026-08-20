@@ -1,4 +1,5 @@
-import { rankingProductos, serieDiaria, proyeccionVentas, resumenVentas } from './reportes.js';
+import { rankingProductos, serieDiaria, proyeccionVentas, resumenVentas, valorInventario } from './reportes.js';
+import { turnoActivo, calcularEfectivoEsperado } from './caja.js';
 import { barrasHorizontales, lineaTemporal } from './graficos.js';
 import { exportarReportePDF, tablaHTML, kpisHTML } from './pdf.js';
 
@@ -15,7 +16,22 @@ function etiquetaRango() {
   return `${desde || 'inicio'} → ${hasta || 'hoy'}`;
 }
 
+function renderCapital() {
+  const cap = valorInventario();
+  const turno = turnoActivo();
+  const efectivo = turno ? calcularEfectivoEsperado(turno.turnoId).esperado : 0;
+  const capitalTotal = cap.costo + efectivo;
+  el('stats-capital').innerHTML = `
+    <div class="stat-tile"><span class="stat-icono">🏦</span><div><div class="stat-valor">${money(capitalTotal)}</div><div class="stat-label">Capital total (stock + caja)</div></div></div>
+    <div class="stat-tile"><span class="stat-icono">📦</span><div><div class="stat-valor">${money(cap.costo)}</div><div class="stat-label">Capital en stock (a costo)</div></div></div>
+    <div class="stat-tile"><span class="stat-icono">💵</span><div><div class="stat-valor">${money(efectivo)}</div><div class="stat-label">Efectivo en caja</div></div></div>
+    <div class="stat-tile"><span class="stat-icono">🏷️</span><div><div class="stat-valor">${money(cap.venta)}</div><div class="stat-label">Valor a precio de venta</div></div></div>
+    <div class="stat-tile"><span class="stat-icono">📈</span><div><div class="stat-valor">${money(cap.ganancia)}</div><div class="stat-label">Ganancia potencial</div></div></div>
+  `;
+}
+
 function render() {
+  renderCapital();
   const rango = rangoActual();
   const ranking = rankingProductos(rango);
   const masVendidos = ranking.slice(0, 6).map(p => ({ etiqueta: p.nombre, valor: p.cantidad }));
@@ -51,7 +67,20 @@ function exportarPDF() {
   const ranking = rankingProductos(rango);
   const proy = proyeccionVentas(rango);
 
+  const cap = valorInventario();
+  const turno = turnoActivo();
+  const efectivo = turno ? calcularEfectivoEsperado(turno.turnoId).esperado : 0;
+
   const cuerpo = `
+    <h2>Capital del negocio</h2>
+    ${kpisHTML([
+      { valor: money(cap.costo + efectivo), etiqueta: 'Capital total (stock + caja)' },
+      { valor: money(cap.costo), etiqueta: 'Capital en stock (a costo)' },
+      { valor: money(efectivo), etiqueta: 'Efectivo en caja' },
+      { valor: money(cap.venta), etiqueta: 'Valor a precio de venta' },
+      { valor: money(cap.ganancia), etiqueta: 'Ganancia potencial' },
+    ])}
+    <h2>Ventas</h2>
     ${kpisHTML([
       { valor: resumen.cantidadVentas, etiqueta: 'Ventas' },
       { valor: money(resumen.totalVendido), etiqueta: 'Total vendido' },
