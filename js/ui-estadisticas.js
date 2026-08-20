@@ -81,6 +81,16 @@ function render() {
   el('stats-linea').innerHTML = chart.html;
   activarLineaInteractiva(el('stats-linea').querySelector('.linea-wrap'), chart.puntos, chart.vb);
 
+  // Apartado de stock parado (productos sin ninguna venta en el período).
+  const rot = analisisRotacion(rango);
+  const sin = rot.sinVenta;
+  el('stats-sin-rotacion-kpi').innerHTML =
+    `<strong>${sin.length}</strong> producto(s) sin venta en el período · Capital parado: <strong>${money(rot.capitalParado)}</strong>`;
+  el('stats-sin-rotacion-body').innerHTML = sin.length
+    ? sin.slice(0, 100).map(p => `<tr><td>${p.codigo}</td><td>${p.nombre}</td><td>${p.categoriaRotacion || '—'}</td><td>${p.stock}</td><td>${money(p.capitalInmovil)}</td></tr>`).join('')
+      + (sin.length > 100 ? `<tr><td colspan="5" class="hint">…y ${sin.length - 100} más (ver el informe PDF).</td></tr>` : '')
+    : '<tr><td colspan="5" class="hint">🎉 Todos los productos con stock tuvieron ventas en el período.</td></tr>';
+
   if (proy.disponible) {
     el('stats-proyeccion').innerHTML = `
       <div class="stat-tile"><span class="stat-icono">📈</span><div><div class="stat-valor">${money(proy.promedioDiario)}</div><div class="stat-label">Promedio diario</div></div></div>
@@ -223,6 +233,33 @@ function exportarProyeccion() {
   });
 }
 
+// Informe enfocado en el stock parado: productos sin ninguna venta en el período,
+// ordenados por capital inmovilizado (lo que hay invertido en stock que no rota).
+function exportarSinRotacion() {
+  const rango = rangoActual();
+  const { sinVenta, capitalParado } = analisisRotacion(rango);
+
+  const cuerpo = `
+    ${kpisHTML([
+      { valor: sinVenta.length, etiqueta: 'Productos sin venta' },
+      { valor: money(capitalParado), etiqueta: 'Capital inmovilizado' },
+    ])}
+    <p style="font-size:12px;color:#667c72">Productos con stock que <strong>no registraron ninguna venta</strong> en el período.
+    Ordenados por capital inmovilizado (stock × precio de compra) para priorizar dónde hay más plata parada.</p>
+    <h2>Productos sin rotación</h2>
+    ${sinVenta.length
+      ? tablaHTML(['#', 'Código', 'Producto', 'Rotación', 'Stock', 'Capital inmovilizado'],
+          sinVenta.map((p, i) => [i + 1, p.codigo, p.nombre, p.categoriaRotacion || '—', p.stock, money(p.capitalInmovil)]))
+      : '<p>Todos los productos con stock tuvieron ventas en el período. 🎉</p>'}
+  `;
+
+  exportarReportePDF({
+    titulo: 'Informe de Stock Parado (sin rotación)',
+    subtitulo: `Período: ${etiquetaRango()}`,
+    cuerpoHTML: cuerpo,
+  });
+}
+
 export function initEstadisticas() {
   el('stats-desde').addEventListener('input', render);
   el('stats-hasta').addEventListener('input', render);
@@ -231,6 +268,7 @@ export function initEstadisticas() {
   el('btn-stats-pdf').addEventListener('click', exportarPDF);
   el('btn-stats-rotacion').addEventListener('click', exportarRotacion);
   el('btn-stats-proyeccion').addEventListener('click', exportarProyeccion);
+  el('btn-stats-sin-rotacion').addEventListener('click', exportarSinRotacion);
   render();
 }
 

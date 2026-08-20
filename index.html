@@ -585,6 +585,21 @@
       <div id="stats-proyeccion" class="stat-grid"></div>
       <p id="stats-proyeccion-aviso" class="alerta-stock hidden"></p>
     </div>
+
+    <div class="card">
+      <div class="seccion-header">
+        <h3 class="sub-titulo">💤 Productos sin rotación (stock parado)</h3>
+        <button id="btn-stats-sin-rotacion" class="btn">📄 Informe de stock parado</button>
+      </div>
+      <p class="hint">Productos con stock que <strong>no se vendieron</strong> en el período seleccionado (usa el filtro de fechas de arriba; sin fechas = todo el histórico). El <strong>capital inmovilizado</strong> es lo que tienes invertido en ese stock parado (stock × precio de compra).</p>
+      <p id="stats-sin-rotacion-kpi" class="hint"></p>
+      <div class="grafico-scroll">
+        <table class="tabla-datos">
+          <thead><tr><th>Código</th><th>Producto</th><th>Rotación</th><th>Stock</th><th>Capital inmovilizado</th></tr></thead>
+          <tbody id="stats-sin-rotacion-body"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <!-- TAB CONFIGURACIÓN (solo admin) -->
