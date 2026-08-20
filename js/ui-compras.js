@@ -185,7 +185,10 @@ function exportarPDF() {
   const rango = (!desde && !hasta) ? 'Todo el histórico' : `${desde || 'inicio'} → ${hasta || 'hoy'}`;
 
   const filas = compras.map(c => {
-    const items = Array.isArray(c.items) ? c.items.map(i => `${i.nombre} ×${i.cantidad}`).join(', ') : (c.producto || '—');
+    // Cada producto en su propia línea (lista), no todo mezclado en una celda.
+    const items = Array.isArray(c.items)
+      ? `<ul style="margin:0;padding-left:16px">${c.items.map(i => `<li>${i.nombre} ×${i.cantidad}</li>`).join('')}</ul>`
+      : (c.producto || '—');
     const pago = c.formaPago === 'caja' ? 'Caja' : c.formaPago === 'aparte' ? 'Aparte' : '—';
     return [new Date(c.fecha).toLocaleString('es-BO'), c.proveedor || '—', items, money(totalDeCompra(c)), pago, c.cajero || '—'];
   });
