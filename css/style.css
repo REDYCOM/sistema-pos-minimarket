@@ -557,6 +557,28 @@ kbd {
 }
 .grafico-grid .card { padding: 1.2rem; }
 
+/* Cuando se muestran muchos productos, el gráfico crece a lo alto: se limita la
+   altura visible y se hace scroll vertical para no estirar la página. */
+.grafico-scroll { max-height: 480px; overflow-y: auto; }
+/* Resaltado interactivo al pasar el mouse por una barra. */
+.barra-g { cursor: default; }
+.barra-g:hover .barra-rect { opacity: 0.82; }
+
+/* Tooltip flotante del gráfico de línea (proyección). */
+.linea-wrap { cursor: crosshair; }
+.linea-tooltip {
+  background: #1c2420;
+  color: #fff;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  padding: 6px 9px;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+  white-space: nowrap;
+  z-index: 5;
+}
+.linea-tooltip strong { font-size: 0.78rem; }
+
 /* ---------- Compras ---------- */
 .compra-cabecera {
   display: grid;

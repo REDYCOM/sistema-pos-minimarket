@@ -31,39 +31,59 @@ export function rankingProductos({ desde, hasta } = {}) {
     .sort((a, b) => b.cantidad - a.cantidad);
 }
 
-// Costo unitario de un ítem vendido: usa el guardado en la venta; si es una
-// venta vieja (sin costo), aproxima con el precio de compra actual del producto.
-function costoDeItem(item) {
-  if (item.costoUnit !== undefined && item.costoUnit !== null) return Number(item.costoUnit) || 0;
+// Costo unitario CONOCIDO de un ítem vendido: usa el guardado en la venta; si es
+// una venta vieja (sin costo), aproxima con el precio de compra actual del
+// producto. Devuelve `null` cuando NO hay un costo real (> 0) registrado, para
+// poder EXCLUIR ese ítem de la ganancia en vez de contarlo como ganancia total
+// (costo 0). Así los productos sin precio de compra no inflan la ganancia hasta
+// que se les registre su costo real.
+function costoConocido(item) {
+  const guardado = Number(item.costoUnit);
+  if (item.costoUnit !== undefined && item.costoUnit !== null && guardado > 0) return guardado;
   const prod = db.productos.find(item.productoId);
-  return prod ? Number(prod.precioCompra) || 0 : 0;
+  const pc = prod ? Number(prod.precioCompra) : 0;
+  return pc > 0 ? pc : null;
 }
 
 // --- Ganancia real del período (venta − costo − descuentos) ---
+// Solo cuenta los ítems con precio de compra conocido. Los ítems sin costo no
+// suman ni restan a la ganancia; se reportan aparte (itemsSinCosto/ventaSinCosto).
 export function gananciaEnRango({ desde, hasta } = {}) {
   const ventas = ventasEnRango({ desde, hasta });
   let ventaBruta = 0, costoTotal = 0, descuentos = 0;
+  let itemsSinCosto = 0, ventaSinCosto = 0;
   ventas.forEach(v => {
+    let brutaVenta = 0, brutaConCosto = 0;
     v.items.forEach(item => {
-      ventaBruta += item.cantidad * item.precioUnit;
-      costoTotal += item.cantidad * costoDeItem(item);
+      const sub = item.cantidad * item.precioUnit;
+      brutaVenta += sub;
+      const costo = costoConocido(item);
+      if (costo === null) { itemsSinCosto += item.cantidad; ventaSinCosto += sub; return; }
+      ventaBruta += sub;
+      costoTotal += item.cantidad * costo;
+      brutaConCosto += sub;
     });
-    descuentos += Number(v.descuento) || 0;
+    // El descuento de la venta se prorratea sobre la parte que sí tiene costo.
+    if (brutaVenta > 0) descuentos += (Number(v.descuento) || 0) * (brutaConCosto / brutaVenta);
   });
   const ganancia = ventaBruta - descuentos - costoTotal;
-  const margen = ventaBruta > 0 ? (ganancia / (ventaBruta - descuentos)) * 100 : 0;
-  return { ventaBruta, costoTotal, descuentos, ganancia, margen };
+  const base = ventaBruta - descuentos;
+  const margen = base > 0 ? (ganancia / base) * 100 : 0;
+  return { ventaBruta, costoTotal, descuentos, ganancia, margen, itemsSinCosto, ventaSinCosto };
 }
 
 // Productos que más ganancia dejaron (de mayor a menor).
+// Omite los ítems sin precio de compra conocido (no se les puede calcular ganancia).
 export function rankingGanancia({ desde, hasta } = {}) {
   const ventas = ventasEnRango({ desde, hasta });
   const acc = new Map();
   ventas.forEach(v => {
     v.items.forEach(item => {
+      const costo = costoConocido(item);
+      if (costo === null) return;
       const prev = acc.get(item.productoId) || { nombre: item.nombre, cantidad: 0, ganancia: 0 };
       prev.cantidad += item.cantidad;
-      prev.ganancia += item.cantidad * (item.precioUnit - costoDeItem(item));
+      prev.ganancia += item.cantidad * (item.precioUnit - costo);
       acc.set(item.productoId, prev);
     });
   });
@@ -78,6 +98,44 @@ export function productosSinVenta({ desde, hasta } = {}) {
   return db.productos.all()
     .filter(p => !vendidos.has(p.id))
     .map(p => ({ nombre: p.nombre, codigo: p.codigo, stock: p.stock, categoriaRotacion: p.categoriaRotacion }));
+}
+
+// --- Análisis de rotación de productos ---
+// Clasifica el inventario según su movimiento en el período:
+//  • vendidos: los que tuvieron ventas (ordenados de mayor a menor cantidad)
+//  • sinVenta: stock parado, no se vendió nada en el rango (con capital inmovilizado)
+// A cada uno se le adjunta stock actual, código, categoría de rotación y, para el
+// stock parado, el capital inmovilizado (stock × precio de compra).
+export function analisisRotacion({ desde, hasta } = {}) {
+  const productos = db.productos.all();
+  const byId = new Map(productos.map(p => [p.id, p]));
+  const byCodigo = new Map(productos.map(p => [p.codigo, p]));
+
+  const vendidos = rankingProductos({ desde, hasta }).map(p => {
+    const prod = byId.get(p.productoId);
+    const stock = prod ? Number(prod.stock) || 0 : 0;
+    return {
+      nombre: p.nombre,
+      codigo: prod ? prod.codigo : '',
+      rotacion: prod ? prod.categoriaRotacion : '',
+      cantidad: p.cantidad,
+      monto: p.monto,
+      stock,
+    };
+  });
+
+  const sinVenta = productosSinVenta({ desde, hasta }).map(p => {
+    const prod = byCodigo.get(p.codigo);
+    const pc = prod ? Number(prod.precioCompra) || 0 : 0;
+    return { ...p, capitalInmovil: (Number(p.stock) || 0) * pc };
+  }).sort((a, b) => b.capitalInmovil - a.capitalInmovil);
+
+  return {
+    vendidos,
+    sinVenta,
+    unidadesVendidas: vendidos.reduce((s, p) => s + p.cantidad, 0),
+    capitalParado: sinVenta.reduce((s, p) => s + p.capitalInmovil, 0),
+  };
 }
 
 // --- Totales del período ---
@@ -127,17 +185,30 @@ export function cierresEnRango({ desde, hasta } = {}) {
 }
 
 // --- Valor del inventario (capital en stock) ---
+// `costo` y `venta` suman TODO el stock (valor total del inventario). La
+// `ganancia` potencial solo cuenta productos con precio de compra real (> 0),
+// para no inflarla contando el precio de venta completo cuando falta el costo.
+// Los que quedan fuera se reportan en `sinCosto` / `ventaSinCosto`.
 export function valorInventario() {
-  let costo = 0, venta = 0, unidades = 0;
+  let costo = 0, venta = 0, unidades = 0, ganancia = 0;
+  let sinCosto = 0, ventaSinCosto = 0;
   const productos = db.productos.all();
   productos.forEach(p => {
     const stock = Number(p.stock) || 0;
     unidades += stock;
-    costo += stock * (Number(p.precioCompra) || 0);
+    const pc = Number(p.precioCompra) || 0;
     const pv = Number(p.precioVentaFinal);
-    venta += stock * (Number.isFinite(pv) ? pv : 0);
+    const pvVal = Number.isFinite(pv) ? pv : 0;
+    costo += stock * pc;
+    venta += stock * pvVal;
+    if (pc > 0) {
+      ganancia += stock * (pvVal - pc);
+    } else if (stock > 0 && pvVal > 0) {
+      sinCosto += 1;
+      ventaSinCosto += stock * pvVal;
+    }
   });
-  return { costo, venta, ganancia: venta - costo, unidades, productos: productos.length };
+  return { costo, venta, ganancia, unidades, productos: productos.length, sinCosto, ventaSinCosto };
 }
 
 // --- Recomendaciones de compra ---
@@ -200,12 +271,18 @@ export function ventasPorDia({ desde, hasta } = {}) {
     prev.total += v.total;
     if (v.metodoPago === 'efectivo') prev.efectivo += v.total;
     else if (v.metodoPago === 'qr') prev.qr += v.total;
-    let ventaBruta = 0, costoTotal = 0;
+    // Ganancia solo de ítems con costo conocido; el descuento se prorratea.
+    let brutaVenta = 0, brutaConCosto = 0, costoTotal = 0;
     v.items.forEach(item => {
-      ventaBruta += item.cantidad * item.precioUnit;
-      costoTotal += item.cantidad * costoDeItem(item);
+      const sub = item.cantidad * item.precioUnit;
+      brutaVenta += sub;
+      const costo = costoConocido(item);
+      if (costo === null) return;
+      brutaConCosto += sub;
+      costoTotal += item.cantidad * costo;
     });
-    prev.ganancia += ventaBruta - (Number(v.descuento) || 0) - costoTotal;
+    const descItem = brutaVenta > 0 ? (Number(v.descuento) || 0) * (brutaConCosto / brutaVenta) : 0;
+    prev.ganancia += brutaConCosto - descItem - costoTotal;
     porDia.set(dia, prev);
   });
   return [...porDia.values()].sort((a, b) => b.dia.localeCompare(a.dia));

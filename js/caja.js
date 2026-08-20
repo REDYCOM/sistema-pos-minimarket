@@ -20,6 +20,27 @@ export function turnoActivo() {
   return session?.turno || null;
 }
 
+// Turnos ABIERTOS de cualquier cajero (tienen apertura pero aún no cierre).
+// Sirve para ver el efectivo real en caja aunque quien mira no sea el cajero
+// que está vendiendo (los datos vienen de Firestore, compartidos entre PCs).
+export function turnosAbiertos() {
+  const cerrados = new Set(db.cierres.all().map(c => c.turnoId));
+  return db.aperturas.all()
+    .filter(a => !cerrados.has(a.turnoId))
+    .map(a => ({
+      turnoId: a.turnoId,
+      cajero: a.cajero || '—',
+      fecha: a.fecha,
+      esperado: calcularEfectivoEsperado(a.turnoId).esperado,
+    }))
+    .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+}
+
+// Efectivo esperado sumando TODAS las cajas abiertas (todos los cajeros).
+export function efectivoEnCajaTotal() {
+  return turnosAbiertos().reduce((s, t) => s + t.esperado, 0);
+}
+
 export function calcularEfectivoEsperado(turnoId) {
   const apertura = db.aperturas.all().find(a => a.turnoId === turnoId);
   const montoApertura = apertura ? apertura.montoApertura : 0;

@@ -485,6 +485,7 @@
       <label class="filtro-fecha">Hasta <input type="date" id="hist-hasta"></label>
     </div>
     <div id="hist-kpis" class="stat-grid"></div>
+    <p id="hist-ganancia-nota" class="hint hidden"></p>
 
     <h3 class="sub-titulo">📅 Ventas por día</h3>
     <table class="tabla-datos">
@@ -533,31 +534,54 @@
   <div class="tab-content" id="tab-estadisticas">
     <div class="seccion-header">
       <h2>📈 Estadísticas</h2>
-      <button id="btn-stats-pdf" class="btn btn-primary">📄 Exportar PDF</button>
+      <div class="seccion-header-derecha">
+        <button id="btn-stats-rotacion" class="btn">🔄 Informe de rotación</button>
+        <button id="btn-stats-pdf" class="btn btn-primary">📄 Exportar PDF</button>
+      </div>
     </div>
 
     <h3 class="sub-titulo">💰 Capital del negocio (ahora)</h3>
     <div id="stats-capital" class="stat-grid"></div>
+    <p id="stats-capital-nota" class="hint hidden"></p>
 
     <div class="toolbar">
       <label class="filtro-fecha">Desde <input type="date" id="stats-desde"></label>
       <label class="filtro-fecha">Hasta <input type="date" id="stats-hasta"></label>
+      <label class="filtro-fecha">Mostrar
+        <select id="stats-top">
+          <option value="6">Top 6</option>
+          <option value="10" selected>Top 10</option>
+          <option value="15">Top 15</option>
+          <option value="20">Top 20</option>
+          <option value="0">Todos</option>
+        </select>
+      </label>
+      <label class="filtro-fecha">Medir por
+        <select id="stats-metrica">
+          <option value="cantidad" selected>Unidades</option>
+          <option value="monto">Bs vendidos</option>
+        </select>
+      </label>
     </div>
 
     <div class="grafico-grid">
       <div class="card">
         <h3 class="sub-titulo">🏆 Más vendidos</h3>
-        <div id="stats-mas-vendidos"></div>
+        <div id="stats-mas-vendidos" class="grafico-scroll"></div>
       </div>
       <div class="card">
         <h3 class="sub-titulo">🐢 Menos vendidos</h3>
-        <div id="stats-menos-vendidos"></div>
+        <div id="stats-menos-vendidos" class="grafico-scroll"></div>
       </div>
     </div>
 
     <div class="card">
-      <h3 class="sub-titulo">📅 Ventas por día y proyección</h3>
+      <div class="seccion-header">
+        <h3 class="sub-titulo">📅 Ventas por día y proyección</h3>
+        <button id="btn-stats-proyeccion" class="btn">🔮 Informe de proyección</button>
+      </div>
       <div id="stats-linea"></div>
+      <p class="hint">🟢 Línea verde: ventas reales · 🟠 Línea naranja punteada: proyección estimada. Pasa el mouse (o el dedo) sobre el gráfico para ver el día, la fecha y el monto.</p>
       <div id="stats-proyeccion" class="stat-grid"></div>
       <p id="stats-proyeccion-aviso" class="alerta-stock hidden"></p>
     </div>

@@ -47,6 +47,14 @@ function render() {
     <div class="stat-tile"><span class="stat-icono">🎫</span><div><div class="stat-valor">${money(resumen.ticketPromedio)}</div><div class="stat-label">Ticket promedio</div></div></div>
   `;
 
+  const nota = el('hist-ganancia-nota');
+  if (ganancia.ventaSinCosto > 0) {
+    nota.textContent = `⚠️ La ganancia excluye ${money(ganancia.ventaSinCosto)} en ventas de productos sin precio de compra registrado (${ganancia.itemsSinCosto} uds). Registrá su costo para que cuenten.`;
+    nota.classList.remove('hidden');
+  } else {
+    nota.classList.add('hidden');
+  }
+
   const porDia = ventasPorDia(rango);
   el('hist-por-dia').innerHTML = porDia.length
     ? porDia.map(d => `<tr><td>${diaLegible(d.dia)}</td><td>${d.cantidad}</td><td>${money(d.efectivo)}</td><td>${money(d.qr)}</td><td><strong>${money(d.total)}</strong></td><td>${money(d.ganancia)}</td></tr>`).join('')
@@ -107,6 +115,7 @@ function exportarPDF() {
       { valor: money(resumen.qr), etiqueta: 'QR' },
       { valor: money(resumen.ticketPromedio), etiqueta: 'Ticket promedio' },
     ])}
+    ${ganancia.ventaSinCosto > 0 ? `<p style="color:#8a6d3b;font-size:11px;margin:4px 0 0">⚠️ La ganancia excluye ${money(ganancia.ventaSinCosto)} en ventas de productos sin precio de compra registrado (${ganancia.itemsSinCosto} uds).</p>` : ''}
     <h2>Ventas por día</h2>
     ${tablaHTML(['Fecha', 'Ventas', 'Efectivo', 'QR', 'Total', 'Ganancia'],
       ventasPorDia(rango).map(d => [diaLegible(d.dia), d.cantidad, money(d.efectivo), money(d.qr), money(d.total), money(d.ganancia)]))}
@@ -154,6 +163,7 @@ function exportarPorDias() {
       { valor: money(ganancia.ganancia), etiqueta: 'Ganancia' },
       { valor: money(porDia.length ? resumen.totalVendido / porDia.length : 0), etiqueta: 'Promedio por día' },
     ])}
+    ${ganancia.ventaSinCosto > 0 ? `<p style="color:#8a6d3b;font-size:11px;margin:4px 0 0">⚠️ La ganancia excluye ${money(ganancia.ventaSinCosto)} en ventas de productos sin precio de compra registrado (${ganancia.itemsSinCosto} uds).</p>` : ''}
     <h2>Ventas por día</h2>
     ${tablaHTML(['Fecha', 'Ventas', 'Efectivo', 'QR', 'Total', 'Ganancia'],
       porDia.map(d => [diaLegible(d.dia), d.cantidad, money(d.efectivo), money(d.qr), money(d.total), money(d.ganancia)]))}
