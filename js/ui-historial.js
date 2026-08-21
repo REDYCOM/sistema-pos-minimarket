@@ -1,15 +1,17 @@
 import {
   rankingProductos, productosSinVenta, resumenVentas,
   aperturasEnRango, cierresEnRango, ventasPorCajero,
-  gananciaEnRango, rankingGanancia, ventasPorDia, cuadrePorTurno,
+  gananciaEnRango, rankingGanancia, ventasPorDia, cuadrePorTurno, ventasPorDiaDetalle,
 } from './reportes.js';
 import { exportarReportePDF, tablaHTML, kpisHTML } from './pdf.js';
 import { getSession } from './storage.js';
+import { turnosAbiertos } from './caja.js';
 
 const el = id => document.getElementById(id);
 const money = n => `Bs ${Number(n).toFixed(2)}`;
 const fechaHora = iso => new Date(iso).toLocaleString('es-BO');
 const soloFecha = iso => new Date(iso).toLocaleDateString('es-BO');
+const horaCorta = iso => new Date(iso).toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit' });
 // 'YYYY-MM-DD' → "lun 18/08/2026" (día de la semana, sin depender de zona horaria).
 const diaLegible = ymd => {
   const [a, m, d] = ymd.split('-').map(Number);
@@ -28,7 +30,33 @@ function etiquetaRango() {
   return `${desde || 'inicio'} → ${hasta || 'hoy'}`;
 }
 
+// Panel "en vivo": cajas que están abiertas ahora mismo y cuánto llevan vendido.
+// Se refresca solo mientras la pestaña Historial está a la vista.
+function renderCajasVivo() {
+  const cont = el('hist-cajas-vivo');
+  if (!cont) return;
+  const abiertas = turnosAbiertos();
+  if (!abiertas.length) {
+    cont.innerHTML = '<p class="hint">⚪ No hay ninguna caja abierta en este momento.</p>';
+    return;
+  }
+  cont.innerHTML = `<div class="stat-grid">${abiertas.map(t => `
+    <div class="stat-tile stat-tile-vivo">
+      <span class="stat-icono">🟢</span>
+      <div>
+        <div class="stat-valor">${money(t.totalVendido)}</div>
+        <div class="stat-label">${t.cajero} — vendido en su turno</div>
+        <div class="stat-detalle">
+          Abrió ${horaCorta(t.fecha)} con ${money(t.montoApertura)}<br>
+          💵 ${money(t.ventasEfectivo)} · 📱 ${money(t.ventasQR)}<br>
+          Efectivo esperado en caja: <strong>${money(t.esperado)}</strong>
+        </div>
+      </div>
+    </div>`).join('')}</div>`;
+}
+
 function render() {
+  renderCajasVivo();
   const rango = rangoActual();
   const resumen = resumenVentas(rango);
   const ganancia = gananciaEnRango(rango);
@@ -55,10 +83,47 @@ function render() {
     nota.classList.add('hidden');
   }
 
+  // Ventas por día, con una fila desplegable por día que muestra cada turno:
+  // qué cajero cobró, con cuánto abrió la caja y con cuánto la cerró.
   const porDia = ventasPorDia(rango);
+  const detalle = new Map(ventasPorDiaDetalle(rango).map(d => [d.dia, d.turnos]));
   el('hist-por-dia').innerHTML = porDia.length
-    ? porDia.map(d => `<tr><td>${diaLegible(d.dia)}</td><td>${d.cantidad}</td><td>${money(d.efectivo)}</td><td>${money(d.qr)}</td><td><strong>${money(d.total)}</strong></td><td>${money(d.ganancia)}</td></tr>`).join('')
-    : '<tr><td colspan="6" class="hint">Sin ventas en el rango.</td></tr>';
+    ? porDia.map(d => {
+        const turnos = detalle.get(d.dia) || [];
+        const filaDia = `<tr class="fila-dia" data-dia="${d.dia}" title="Clic para ver el detalle por cajero">
+          <td class="col-expandir"><span class="expandir-icono">▶</span></td>
+          <td>${diaLegible(d.dia)}</td><td>${d.cantidad}</td><td>${money(d.efectivo)}</td>
+          <td>${money(d.qr)}</td><td><strong>${money(d.total)}</strong></td><td>${money(d.ganancia)}</td>
+        </tr>`;
+        const sub = turnos.map(t => {
+          const estado = t.sinTurno
+            ? '<span class="chip chip-alerta">Sin turno</span>'
+            : t.abierto ? '<span class="chip chip-info">Caja abierta</span>' : '<span class="chip chip-ok">Cerrada</span>';
+          const dif = t.diferencia === null ? '' : t.diferencia === 0
+            ? ' <span class="chip chip-ok">cuadra</span>'
+            : t.diferencia > 0
+              ? ` <span class="chip chip-info">sobra ${money(t.diferencia)}</span>`
+              : ` <span class="chip chip-alerta">falta ${money(Math.abs(t.diferencia))}</span>`;
+          return `<tr>
+            <td><strong>${t.cajero}</strong> ${estado}</td>
+            <td>${t.aperturaFecha ? horaCorta(t.aperturaFecha) : '—'}</td>
+            <td>${t.montoApertura === null ? '—' : money(t.montoApertura)}</td>
+            <td>${t.cierreFecha ? horaCorta(t.cierreFecha) : '—'}</td>
+            <td>${t.efectivoContado === null ? '—' : money(t.efectivoContado)}${dif}</td>
+            <td>${t.cantidad}</td><td>${money(t.efectivo)}</td><td>${money(t.qr)}</td>
+            <td><strong>${money(t.total)}</strong></td>
+          </tr>`;
+        }).join('');
+        const filaDetalle = `<tr class="fila-detalle hidden" data-detalle="${d.dia}"><td colspan="7">
+          <table class="tabla-datos tabla-anidada">
+            <thead><tr><th>Cajero</th><th>Abrió</th><th>Monto apertura</th><th>Cerró</th><th>Efectivo contado</th><th>Ventas</th><th>Efectivo</th><th>QR</th><th>Total</th></tr></thead>
+            <tbody>${sub || '<tr><td colspan="9" class="hint">Sin detalle.</td></tr>'}</tbody>
+          </table>
+        </td></tr>`;
+        return filaDia + filaDetalle;
+      }).join('')
+    : '<tr><td colspan="7" class="hint">Sin ventas en el rango.</td></tr>';
+
 
   const porCajero = ventasPorCajero(rango);
   el('hist-cajeros').innerHTML = porCajero.length
@@ -155,6 +220,17 @@ function exportarPDF() {
     <h2>Ventas por día</h2>
     ${tablaHTML(['Fecha', 'Ventas', 'Efectivo', 'QR', 'Total', 'Ganancia'],
       ventasPorDia(rango).map(d => [diaLegible(d.dia), d.cantidad, money(d.efectivo), money(d.qr), money(d.total), money(d.ganancia)]))}
+    <h2>Detalle diario por cajero (apertura y cierre de caja)</h2>
+    ${tablaHTML(['Fecha', 'Cajero', 'Abrió', 'Monto apertura', 'Cerró', 'Efectivo contado', 'Diferencia', 'Ventas', 'Efectivo', 'QR', 'Total'],
+      ventasPorDiaDetalle(rango).flatMap(d => d.turnos.map(t => [
+        diaLegible(d.dia), t.cajero,
+        t.aperturaFecha ? horaCorta(t.aperturaFecha) : '—',
+        t.montoApertura === null ? '—' : money(t.montoApertura),
+        t.cierreFecha ? horaCorta(t.cierreFecha) : (t.abierto ? 'ABIERTA' : '—'),
+        t.efectivoContado === null ? '—' : money(t.efectivoContado),
+        t.diferencia === null ? '—' : t.diferencia === 0 ? 'Cuadra' : t.diferencia > 0 ? `Sobra ${money(t.diferencia)}` : `Falta ${money(Math.abs(t.diferencia))}`,
+        t.cantidad, money(t.efectivo), money(t.qr), money(t.total),
+      ])))}
     <h2>Ventas por cajero</h2>
     ${tablaHTML(['Cajero', 'Ventas', 'Efectivo', 'QR', 'Total'],
       porCajero.map(c => [c.cajero, c.cantidad, money(c.efectivo), money(c.qr), money(c.total)]))}
@@ -228,6 +304,25 @@ function exportarPorDias() {
 export function initHistorial() {
   el('hist-desde').addEventListener('input', render);
   el('hist-hasta').addEventListener('input', render);
+  // Clic en una fila de día: despliega/oculta el detalle por cajero de ese día.
+  el('hist-por-dia').addEventListener('click', e => {
+    const fila = e.target.closest('.fila-dia');
+    if (!fila) return;
+    const dia = fila.dataset.dia;
+    const det = el('hist-por-dia').querySelector(`.fila-detalle[data-detalle="${dia}"]`);
+    if (!det) return;
+    const abierto = !det.classList.toggle('hidden');
+    fila.classList.toggle('fila-dia-abierta', abierto);
+    const icono = fila.querySelector('.expandir-icono');
+    if (icono) icono.textContent = abierto ? '▼' : '▶';
+  });
+
+  // Las cajas abiertas cambian solas mientras el cajero vende: se refrescan cada
+  // 30 s, pero solo si la pestaña Historial está visible (no gasta si no se ve).
+  setInterval(() => {
+    if (el('tab-historial')?.classList.contains('active')) renderCajasVivo();
+  }, 30000);
+
   el('btn-hist-pdf').addEventListener('click', exportarPDF);
   el('btn-hist-pdf-dias').addEventListener('click', exportarPorDias);
   render();

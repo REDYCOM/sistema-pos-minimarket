@@ -27,12 +27,21 @@ export function turnosAbiertos() {
   const cerrados = new Set(db.cierres.all().map(c => c.turnoId));
   return db.aperturas.all()
     .filter(a => !cerrados.has(a.turnoId))
-    .map(a => ({
-      turnoId: a.turnoId,
-      cajero: a.cajero || '—',
-      fecha: a.fecha,
-      esperado: calcularEfectivoEsperado(a.turnoId).esperado,
-    }))
+    .map(a => {
+      const r = calcularEfectivoEsperado(a.turnoId);
+      return {
+        turnoId: a.turnoId,
+        cajero: a.cajero || '—',
+        fecha: a.fecha,
+        montoApertura: r.montoApertura,
+        ventasEfectivo: r.ventasEfectivo,
+        ventasQR: r.ventasQR,
+        totalVendido: r.totalVendido,
+        entradas: r.entradas,
+        salidas: r.salidas,
+        esperado: r.esperado,
+      };
+    })
     .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
 }
 

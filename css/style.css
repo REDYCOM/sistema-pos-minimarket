@@ -1126,3 +1126,14 @@ kbd {
   .btn-hamburguesa { display: block; }
   .marca { display: inline-block !important; font-size: 1.05rem; }
 }
+
+/* ---------- Historial: días desplegables y cajas en vivo ---------- */
+.fila-dia { cursor: pointer; }
+.fila-dia .col-expandir { width: 28px; text-align: center; color: var(--color-primary); font-size: 0.7rem; }
+.fila-dia:hover { background: var(--color-primary-light); }
+.fila-dia-abierta { background: var(--color-primary-light); font-weight: 600; }
+.fila-detalle > td { background: #f7faf8; padding: 0.4rem 0.8rem 0.8rem; }
+.tabla-anidada { font-size: 0.86rem; margin: 0; }
+.tabla-anidada th { background: transparent; color: var(--color-primary-dark, #0f5c3a); }
+.stat-tile-vivo { align-items: flex-start; }
+.stat-detalle { font-size: 0.68rem; line-height: 1.45; color: rgba(255,255,255,0.92); margin-top: 4px; font-weight: 600; }

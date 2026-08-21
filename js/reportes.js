@@ -405,3 +405,49 @@ export function cuadrePorTurno({ desde, hasta } = {}) {
     },
   };
 }
+
+// --- Detalle diario: cada día desglosado por turno/cajero ---
+// Agrupa las VENTAS de cada día por su turno (no los turnos por su fecha de
+// apertura), así el detalle siempre suma exactamente el total del día aunque un
+// turno cruce la medianoche. A cada turno se le adjunta su apertura y su cierre
+// (monto de apertura, efectivo esperado, contado y diferencia).
+export function ventasPorDiaDetalle({ desde, hasta } = {}) {
+  const ventas = ventasEnRango({ desde, hasta });
+  const aperturas = new Map(db.aperturas.all().map(a => [a.turnoId, a]));
+  const cierres = new Map(db.cierres.all().map(c => [c.turnoId, c]));
+
+  const porDia = new Map(); // dia -> Map(turnoId -> acumulado)
+  ventas.forEach(v => {
+    const dia = soloFecha(v.fecha);
+    if (!porDia.has(dia)) porDia.set(dia, new Map());
+    const turnos = porDia.get(dia);
+    const clave = v.turnoId || '__sin_turno__';
+    const prev = turnos.get(clave)
+      || { turnoId: v.turnoId || null, cajero: v.cajero || '—', cantidad: 0, efectivo: 0, qr: 0, total: 0 };
+    prev.cantidad += 1;
+    prev.total += v.total;
+    if (v.metodoPago === 'efectivo') prev.efectivo += v.total;
+    else if (v.metodoPago === 'qr') prev.qr += v.total;
+    turnos.set(clave, prev);
+  });
+
+  return [...porDia.entries()].map(([dia, turnos]) => ({
+    dia,
+    turnos: [...turnos.values()].map(t => {
+      const a = t.turnoId ? aperturas.get(t.turnoId) : null;
+      const c = t.turnoId ? cierres.get(t.turnoId) : null;
+      return {
+        ...t,
+        cajero: a?.cajero || t.cajero,
+        aperturaFecha: a?.fecha || null,
+        montoApertura: a ? Number(a.montoApertura) || 0 : null,
+        cierreFecha: c?.fecha || null,
+        efectivoEsperado: c ? Number(c.efectivoEsperado) || 0 : null,
+        efectivoContado: c ? Number(c.efectivoContado) || 0 : null,
+        diferencia: c ? Number(c.diferencia) || 0 : null,
+        abierto: !!t.turnoId && !c,
+        sinTurno: !t.turnoId,
+      };
+    }).sort((x, y) => (x.aperturaFecha || '').localeCompare(y.aperturaFecha || '')),
+  })).sort((a, b) => b.dia.localeCompare(a.dia));
+}
