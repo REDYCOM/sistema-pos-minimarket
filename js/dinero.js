@@ -1,5 +1,6 @@
 import { db, uid, getSession } from './storage.js';
 import { turnoActivo } from './caja.js';
+import { fechaLocalYMD } from './util.js';
 
 export function registrarMovimiento(tipo, monto, motivo) {
   const session = getSession();
@@ -19,7 +20,7 @@ export function registrarMovimiento(tipo, monto, motivo) {
 
 export function listarMovimientos({ fecha, cajero } = {}) {
   return db.movimientos.all()
-    .filter(m => !fecha || m.fecha.slice(0, 10) === fecha)
+    .filter(m => !fecha || fechaLocalYMD(m.fecha) === fecha)
     .filter(m => !cajero || m.cajero === cajero)
     .sort((a, b) => b.fecha.localeCompare(a.fecha));
 }

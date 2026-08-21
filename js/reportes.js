@@ -1,7 +1,8 @@
 import { db } from './storage.js';
+import { fechaLocalYMD } from './util.js';
 
 // --- Utilidades de fecha ---
-const soloFecha = iso => iso.slice(0, 10); // 'YYYY-MM-DD'
+const soloFecha = iso => fechaLocalYMD(iso); // fecha LOCAL 'YYYY-MM-DD' (ver util.js)
 
 function enRango(iso, desde, hasta) {
   const f = soloFecha(iso);
@@ -215,7 +216,7 @@ export function valorInventario() {
 function fechaHaceDias(dias) {
   const d = new Date();
   d.setDate(d.getDate() - dias);
-  return d.toISOString().slice(0, 10);
+  return fechaLocalYMD(d);
 }
 
 // Productos con stock bajo que ADEMÁS se venden, priorizados por la ganancia que
@@ -338,5 +339,69 @@ export function proyeccionVentas({ desde, hasta, diasMinimos = 30, diasFuturos =
     puntosProyectados,
     totalProyectado: puntosProyectados.reduce((a, b) => a + b, 0),
     diasFuturos,
+  };
+}
+
+// --- Cuadre de caja por turno ---
+// El "Cierre de Caja" que ve el cajero cubre SOLO su turno (desde que abrió esa
+// caja hasta que la cerró), mientras que "Ventas por día" cubre TODO el día
+// (todos los turnos juntos). Si en un día hubo varias aperturas/cierres, los
+// números no coinciden aunque todo esté bien. Esta función desglosa turno por
+// turno para poder cuadrarlos contra el total del día.
+//
+// Devuelve { turnos, sinTurno, totales } donde `sinTurno` son las ventas del
+// rango que quedaron SIN turnoId (no aparecen en ningún cierre: hay que
+// revisarlas aparte).
+export function cuadrePorTurno({ desde, hasta } = {}) {
+  const ventas = ventasEnRango({ desde, hasta });
+  const cierresPorTurno = new Map(db.cierres.all().map(c => [c.turnoId, c]));
+
+  // Turnos que tocan el rango: los que tienen apertura en el rango o ventas del rango.
+  const turnoIdsConVenta = new Set(ventas.map(v => v.turnoId).filter(Boolean));
+  const aperturas = db.aperturas.all()
+    .filter(a => enRango(a.fecha, desde, hasta) || turnoIdsConVenta.has(a.turnoId));
+
+  const turnos = aperturas.map(a => {
+    // OJO: las ventas del turno se filtran por turnoId (no por fecha), que es
+    // exactamente lo que hace el cierre de caja del cajero.
+    const vt = db.ventas.all().filter(v => !v.cancelada && v.turnoId === a.turnoId);
+    const efectivo = vt.filter(v => v.metodoPago === 'efectivo').reduce((s, v) => s + v.total, 0);
+    const qr = vt.filter(v => v.metodoPago === 'qr').reduce((s, v) => s + v.total, 0);
+    const movs = db.movimientos.all().filter(m => m.turnoId === a.turnoId);
+    const entradas = movs.filter(m => m.tipo === 'entrada').reduce((s, m) => s + m.monto, 0);
+    const salidas = movs.filter(m => m.tipo === 'salida').reduce((s, m) => s + m.monto, 0);
+    const montoApertura = Number(a.montoApertura) || 0;
+    const esperado = montoApertura + efectivo - salidas + entradas;
+    const cierre = cierresPorTurno.get(a.turnoId) || null;
+    return {
+      turnoId: a.turnoId,
+      cajero: a.cajero || '—',
+      apertura: a.fecha,
+      cierreFecha: cierre ? cierre.fecha : null,
+      abierto: !cierre,
+      montoApertura, cantidad: vt.length, efectivo, qr,
+      total: efectivo + qr, entradas, salidas, esperado,
+      contado: cierre ? Number(cierre.efectivoContado) || 0 : null,
+      diferencia: cierre ? Number(cierre.diferencia) || 0 : null,
+    };
+  }).sort((a, b) => (b.apertura || '').localeCompare(a.apertura || ''));
+
+  // Ventas del rango sin turno (o con un turnoId que ya no tiene apertura).
+  const idsValidos = new Set(aperturas.map(a => a.turnoId));
+  const huerfanas = ventas.filter(v => !v.turnoId || !idsValidos.has(v.turnoId));
+  const sinTurno = {
+    cantidad: huerfanas.length,
+    efectivo: huerfanas.filter(v => v.metodoPago === 'efectivo').reduce((s, v) => s + v.total, 0),
+    qr: huerfanas.filter(v => v.metodoPago === 'qr').reduce((s, v) => s + v.total, 0),
+    total: huerfanas.reduce((s, v) => s + v.total, 0),
+  };
+
+  return {
+    turnos, sinTurno,
+    totales: {
+      // Suma de turnos + huérfanas debe dar el total del día del rango.
+      cantidad: turnos.reduce((s, t) => s + t.cantidad, 0) + sinTurno.cantidad,
+      total: turnos.reduce((s, t) => s + t.total, 0) + sinTurno.total,
+    },
   };
 }

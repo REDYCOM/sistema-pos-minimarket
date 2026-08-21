@@ -2,6 +2,7 @@ import { db, uid, getSession } from './storage.js';
 import { crearProducto } from './productos.js';
 import { registrarMovimiento } from './dinero.js';
 import { turnoActivo } from './caja.js';
+import { fechaLocalYMD } from './util.js';
 
 // Una compra es como el carrito de venta pero al revés: en vez de descontar
 // stock, lo suma. Cada ítem puede referir a un producto existente (por id) o
@@ -90,8 +91,8 @@ export function registrarCompra({ proveedor, formaPago, items, descuento = 0 }) 
 
 export function listarCompras({ desde, hasta } = {}) {
   return db.compras.all()
-    .filter(c => !desde || c.fecha.slice(0, 10) >= desde)
-    .filter(c => !hasta || c.fecha.slice(0, 10) <= hasta)
+    .filter(c => !desde || fechaLocalYMD(c.fecha) >= desde)
+    .filter(c => !hasta || fechaLocalYMD(c.fecha) <= hasta)
     .sort((a, b) => b.fecha.localeCompare(a.fecha));
 }
 

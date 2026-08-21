@@ -1,6 +1,7 @@
 import { db, uid, getSession } from './storage.js';
 import { turnoActivo } from './caja.js';
 import { registrarMovimiento } from './dinero.js';
+import { fechaLocalYMD } from './util.js';
 
 // Una devolución es el reverso de una venta: los productos vuelven al inventario
 // (sube el stock) y se le devuelve dinero al cliente. Si el reembolso es en
@@ -48,8 +49,8 @@ export function registrarDevolucion({ items, metodo, motivo }) {
 
 export function listarDevoluciones({ desde, hasta } = {}) {
   return db.devoluciones.all()
-    .filter(d => !desde || d.fecha.slice(0, 10) >= desde)
-    .filter(d => !hasta || d.fecha.slice(0, 10) <= hasta)
+    .filter(d => !desde || fechaLocalYMD(d.fecha) >= desde)
+    .filter(d => !hasta || fechaLocalYMD(d.fecha) <= hasta)
     .sort((a, b) => b.fecha.localeCompare(a.fecha));
 }
 

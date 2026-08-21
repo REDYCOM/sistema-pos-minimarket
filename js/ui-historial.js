@@ -1,7 +1,7 @@
 import {
   rankingProductos, productosSinVenta, resumenVentas,
   aperturasEnRango, cierresEnRango, ventasPorCajero,
-  gananciaEnRango, rankingGanancia, ventasPorDia,
+  gananciaEnRango, rankingGanancia, ventasPorDia, cuadrePorTurno,
 } from './reportes.js';
 import { exportarReportePDF, tablaHTML, kpisHTML } from './pdf.js';
 import { getSession } from './storage.js';
@@ -78,6 +78,42 @@ function render() {
       + (sinVenta.length > 50 ? `<tr><td colspan="4" class="hint">…y ${sinVenta.length - 50} más.</td></tr>` : '')
     : '<tr><td colspan="4" class="hint">Todos los productos tuvieron ventas.</td></tr>';
 
+  // Cuadre turno por turno: permite reconciliar el total del día (que suma TODOS
+  // los turnos) contra cada cierre de caja individual que ve el cajero.
+  const cuadre = cuadrePorTurno(rango);
+  el('hist-cuadre').innerHTML = (cuadre.turnos.length || cuadre.sinTurno.cantidad)
+    ? cuadre.turnos.map(t => {
+        const estado = t.abierto
+          ? '<span class="chip chip-info">Abierta</span>'
+          : '<span class="chip chip-ok">Cerrada</span>';
+        const dif = t.diferencia === null
+          ? '<span class="hint">—</span>'
+          : t.diferencia === 0
+            ? '<span class="chip chip-ok">Cuadra</span>'
+            : t.diferencia > 0
+              ? `<span class="chip chip-info">Sobra ${money(t.diferencia)}</span>`
+              : `<span class="chip chip-alerta">Falta ${money(Math.abs(t.diferencia))}</span>`;
+        return `<tr>
+          <td>${fechaHora(t.apertura)}</td><td>${t.cajero}</td><td>${estado}</td>
+          <td>${t.cantidad}</td><td>${money(t.efectivo)}</td><td>${money(t.qr)}</td>
+          <td><strong>${money(t.total)}</strong></td><td>${money(t.esperado)}</td>
+          <td>${t.contado === null ? '<span class="hint">—</span>' : money(t.contado)}</td><td>${dif}</td>
+        </tr>`;
+      }).join('')
+      + (cuadre.sinTurno.cantidad
+        ? `<tr><td colspan="3"><strong>⚠️ Ventas sin turno</strong></td><td>${cuadre.sinTurno.cantidad}</td><td>${money(cuadre.sinTurno.efectivo)}</td><td>${money(cuadre.sinTurno.qr)}</td><td><strong>${money(cuadre.sinTurno.total)}</strong></td><td colspan="3" class="hint">No aparecen en ningún cierre de caja.</td></tr>`
+        : '')
+    : '<tr><td colspan="10" class="hint">Sin turnos en el rango.</td></tr>';
+
+  const descuadre = Math.round((resumen.totalVendido - cuadre.totales.total) * 100) / 100;
+  el('hist-cuadre-nota').innerHTML = cuadre.turnos.length
+    ? `Total del período (todos los turnos): <strong>${money(resumen.totalVendido)}</strong> · Suma de los turnos listados: <strong>${money(cuadre.totales.total)}</strong>`
+      + (descuadre === 0 ? ' · ✅ Cuadra.' : ` · ⚠️ Diferencia: <strong>${money(descuadre)}</strong>.`)
+      + (cuadre.turnos.length > 1
+          ? `<br>ℹ️ Hubo <strong>${cuadre.turnos.length} turnos</strong> en este rango: por eso el cierre de caja que ve el cajero (un solo turno) muestra menos que el total del día.`
+          : '')
+    : '';
+
   el('hist-aperturas').innerHTML = aperturas.length
     ? aperturas.map(a => `<tr><td>${fechaHora(a.fecha)}</td><td>${a.cajero}</td><td>${money(a.montoApertura)}</td></tr>`).join('')
     : '<tr><td colspan="3" class="hint">Sin aperturas en el rango.</td></tr>';
@@ -131,6 +167,19 @@ function exportarPDF() {
     <h2>Productos sin venta / baja rotación</h2>
     ${tablaHTML(['Código', 'Producto', 'Rotación', 'Stock'],
       sinVenta.map(p => [p.codigo, p.nombre, p.categoriaRotacion, p.stock]))}
+    <h2>Cuadre por turno (caja por caja)</h2>
+    <p style="font-size:11px;color:#667c72">Cada cierre de caja cubre SOLO su turno; el total del período suma todos los turnos.</p>
+    ${tablaHTML(['Apertura', 'Cajero', 'Estado', 'Ventas', 'Efectivo', 'QR', 'Total vendido', 'Esperado', 'Contado', 'Diferencia'],
+      (() => {
+        const c = cuadrePorTurno(rango);
+        const filas = c.turnos.map(t => [fechaHora(t.apertura), t.cajero, t.abierto ? 'Abierta' : 'Cerrada',
+          t.cantidad, money(t.efectivo), money(t.qr), money(t.total), money(t.esperado),
+          t.contado === null ? '—' : money(t.contado),
+          t.diferencia === null ? '—' : t.diferencia === 0 ? 'Cuadra' : t.diferencia > 0 ? `Sobra ${money(t.diferencia)}` : `Falta ${money(Math.abs(t.diferencia))}`]);
+        if (c.sinTurno.cantidad) filas.push(['— Ventas sin turno —', '—', '—', c.sinTurno.cantidad,
+          money(c.sinTurno.efectivo), money(c.sinTurno.qr), money(c.sinTurno.total), '—', '—', 'No están en ningún cierre']);
+        return filas;
+      })())}
     <h2>Aperturas de caja</h2>
     ${tablaHTML(['Fecha', 'Cajero', 'Monto apertura'],
       aperturas.map(a => [fechaHora(a.fecha), a.cajero, money(a.montoApertura)]))}

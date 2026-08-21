@@ -1,5 +1,24 @@
 // Utilidades pequeñas y compartidas de interfaz.
 
+// --- Fechas locales ---
+// Las fechas se guardan en ISO (UTC). En Bolivia (UTC−4) una venta hecha a las
+// 20:00 se guarda con el día SIGUIENTE en UTC, así que filtrar o agrupar usando
+// el texto del ISO (`fecha.slice(0,10)`) metía las ventas de la noche en el día
+// equivocado y los reportes por día no cuadraban contra el cierre de caja (que
+// agrupa por turno, no por fecha). Por eso siempre se convierte a la fecha
+// LOCAL del dispositivo antes de comparar o agrupar.
+export function fechaLocalYMD(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return String(iso).slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Hoy en fecha local, 'YYYY-MM-DD'.
+export function hoyYMD() {
+  return fechaLocalYMD(new Date());
+}
+
+
 // Selecciona todo el contenido de un input al enfocarlo (por clic o con Tab),
 // para que al escribir se reemplace el valor en vez de tener que borrar el 0.
 // El guard con mousedown/mouseup evita que el clic deshaga la selección: al
