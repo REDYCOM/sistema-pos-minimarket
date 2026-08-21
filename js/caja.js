@@ -98,3 +98,27 @@ export function cerrarCaja(turnoId, conteoFisico) {
   setSession({ ...session, turno: null });
   return cierre;
 }
+
+// Cierra un turno ABANDONADO (quedó abierto y ya nadie lo va a cerrar) desde el
+// panel del admin. A diferencia de cerrarCaja(), no toca la sesión de quien lo
+// ejecuta (el admin no tiene turno) y deja registrado quién lo cerró, para que
+// el cierre no se confunda con uno hecho por el cajero al terminar su turno.
+export function cerrarCajaAbandonada(turnoId, conteoFisico) {
+  const apertura = db.aperturas.all().find(a => a.turnoId === turnoId);
+  const { esperado, ...detalle } = calcularEfectivoEsperado(turnoId);
+  const contado = Number(conteoFisico) || 0;
+  const cierre = {
+    id: uid(),
+    turnoId,
+    cajero: apertura?.cajero || '—',
+    fecha: new Date().toISOString(),
+    ...detalle,
+    efectivoEsperado: esperado,
+    efectivoContado: contado,
+    diferencia: contado - esperado,
+    cerradoPorAdmin: true,
+    cerradoPor: getSession()?.username || '—',
+  };
+  db.cierres.add(cierre);
+  return cierre;
+}

@@ -87,6 +87,7 @@
     <nav class="tabs" id="main-tabs">
       <button class="tab-btn active" data-tab="venta">🛒 <span>Venta</span><kbd class="tab-fkey">Esc</kbd></button>
       <button class="tab-btn" data-tab="avisos">🔔 <span>Avisos</span><span class="tab-badge hidden" id="avisos-badge">0</span></button>
+      <button class="tab-btn" data-tab="misventas">🧾 <span>Mis ventas</span></button>
       <button class="tab-btn" data-tab="inventario">📦 <span>Inventario</span><kbd class="tab-fkey">F2</kbd></button>
       <button class="tab-btn" data-tab="productos">🏷️ <span>Productos</span><kbd class="tab-fkey">F3</kbd></button>
       <button class="tab-btn" data-tab="dinero">💵 <span>Entrada/Salida</span><kbd class="tab-fkey">F4</kbd></button>
@@ -161,6 +162,35 @@
           <span class="atajo"><kbd>F1</kbd> Cancelar venta</span>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- TAB MIS VENTAS (solo vendedor) -->
+  <div class="tab-content" id="tab-misventas">
+    <div class="seccion-header">
+      <h2>🧾 Mis ventas del día</h2>
+      <div class="seccion-header-derecha">
+        <label class="filtro-fecha">Día <input type="date" id="mis-fecha"></label>
+        <button id="btn-mis-hoy" class="btn">📅 Hoy</button>
+      </div>
+    </div>
+    <p class="hint">Acá ves solo <strong>tus</strong> ventas del día elegido, con la hora y los productos de cada una, para revisar si una venta quedó registrada.</p>
+    <div id="mis-kpis" class="stat-grid"></div>
+
+    <h3 class="sub-titulo">🕒 Venta por venta</h3>
+    <div class="grafico-scroll">
+      <table class="tabla-datos">
+        <thead><tr><th>#</th><th>Hora</th><th>Productos</th><th>Pago</th><th>Total</th></tr></thead>
+        <tbody id="mis-ventas-body"></tbody>
+      </table>
+    </div>
+
+    <h3 class="sub-titulo">📦 Productos que vendí ese día</h3>
+    <div class="grafico-scroll">
+      <table class="tabla-datos">
+        <thead><tr><th>#</th><th>Producto</th><th>Cantidad</th><th>Monto</th></tr></thead>
+        <tbody id="mis-productos-body"></tbody>
+      </table>
     </div>
   </div>
 

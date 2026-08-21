@@ -5,7 +5,10 @@ import {
 } from './reportes.js';
 import { exportarReportePDF, tablaHTML, kpisHTML } from './pdf.js';
 import { getSession } from './storage.js';
-import { turnosAbiertos } from './caja.js';
+import { turnosAbiertos, cerrarCajaAbandonada } from './caja.js';
+import { fechaLocalYMD, hoyYMD } from './util.js';
+import { toast } from './toast.js';
+import { confirmar } from './modal.js';
 
 const el = id => document.getElementById(id);
 const money = n => `Bs ${Number(n).toFixed(2)}`;
@@ -40,19 +43,29 @@ function renderCajasVivo() {
     cont.innerHTML = '<p class="hint">⚪ No hay ninguna caja abierta en este momento.</p>';
     return;
   }
-  cont.innerHTML = `<div class="stat-grid">${abiertas.map(t => `
-    <div class="stat-tile stat-tile-vivo">
-      <span class="stat-icono">🟢</span>
+  const hoy = hoyYMD();
+  cont.innerHTML = `<div class="stat-grid">${abiertas.map(t => {
+    // Una caja abierta de un día anterior quedó ABANDONADA: nadie la va a
+    // cerrar y su efectivo sigue sumando al capital. Se ofrece cerrarla.
+    const vieja = fechaLocalYMD(t.fecha) < hoy;
+    return `
+    <div class="stat-tile stat-tile-vivo${vieja ? ' stat-tile-vieja' : ''}">
+      <span class="stat-icono">${vieja ? '⚠️' : '🟢'}</span>
       <div>
         <div class="stat-valor">${money(t.totalVendido)}</div>
         <div class="stat-label">${t.cajero} — vendido en su turno</div>
         <div class="stat-detalle">
-          Abrió ${horaCorta(t.fecha)} con ${money(t.montoApertura)}<br>
+          Abrió ${vieja ? fechaHora(t.fecha) : horaCorta(t.fecha)} con ${money(t.montoApertura)}<br>
           💵 ${money(t.ventasEfectivo)} · 📱 ${money(t.ventasQR)}<br>
           Efectivo esperado en caja: <strong>${money(t.esperado)}</strong>
+          ${vieja ? `<br><button type="button" class="btn-mini cerrar-caja-vieja" data-turno="${t.turnoId}" data-esperado="${t.esperado}" data-cajero="${t.cajero}">🔒 Cerrar esta caja</button>` : ''}
         </div>
       </div>
-    </div>`).join('')}</div>`;
+    </div>`;
+  }).join('')}</div>
+  ${abiertas.some(t => fechaLocalYMD(t.fecha) < hoy)
+    ? '<p class="hint">⚠️ Las cajas marcadas quedaron abiertas de días anteriores (nadie las cerró) y su efectivo sigue sumando al capital. Ciérralas para limpiar el dato.</p>'
+    : ''}`;
 }
 
 function render() {
@@ -322,6 +335,29 @@ export function initHistorial() {
   setInterval(() => {
     if (el('tab-historial')?.classList.contains('active')) renderCajasVivo();
   }, 30000);
+
+  // Cerrar una caja abandonada (abierta de días anteriores) desde el panel en vivo.
+  el('hist-cajas-vivo').addEventListener('click', async e => {
+    const btn = e.target.closest('.cerrar-caja-vieja');
+    if (!btn) return;
+    const { turno, esperado, cajero } = btn.dataset;
+    const ok = await confirmar(
+      `¿Cerrar la caja abandonada de "${cajero}"? Su efectivo esperado es ${money(esperado)} y dejará de sumar al capital.`,
+      { aceptar: 'Sí, cerrarla', peligro: true });
+    if (!ok) return;
+    const escrito = window.prompt(
+      `Efectivo realmente contado para la caja de "${cajero}" (Bs).\nSi ya no se puede contar, deja el valor sugerido para cerrarla sin diferencia.`,
+      Number(esperado).toFixed(2));
+    if (escrito === null) return;
+    const contado = Number(escrito);
+    if (!Number.isFinite(contado) || contado < 0) return toast.error('Monto inválido.');
+    const cierre = cerrarCajaAbandonada(turno, contado);
+    const dif = cierre.diferencia === 0
+      ? 'sin diferencia'
+      : cierre.diferencia > 0 ? `sobrante de ${money(cierre.diferencia)}` : `faltante de ${money(Math.abs(cierre.diferencia))}`;
+    toast.success(`🔒 Caja de "${cajero}" cerrada (${dif}).`);
+    render();
+  });
 
   el('btn-hist-pdf').addEventListener('click', exportarPDF);
   el('btn-hist-pdf-dias').addEventListener('click', exportarPorDias);
