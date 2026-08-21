@@ -1,4 +1,4 @@
-import { db } from './storage.js';
+import { db, getSession } from './storage.js';
 import { buscarProductos } from './productos.js';
 import { registrarCompra, listarCompras, totalCompras, totalDeItems, totalDeCompra } from './compras.js';
 import { actualizarAlertaStockBajo } from './ui-dashboard.js';
@@ -64,6 +64,24 @@ function agregarExistente(producto) {
   el('compra-sugerencias').classList.add('hidden');
   el('compra-buscar').focus();
 }
+
+// El admin administra pero no vende: no tiene caja abierta, así que sus compras
+// se pagan siempre "Aparte" (fondos del negocio). Si se dejara "Efectivo de
+// caja" registraría una salida sin turno, que no entraría en ningún cierre.
+function aplicarRolCompras() {
+  const esAdmin = getSession()?.role === 'admin';
+  const sel = el('compra-forma-pago');
+  if (!sel) return;
+  const optCaja = sel.querySelector('option[value="caja"]');
+  if (optCaja) {
+    optCaja.disabled = esAdmin;
+    optCaja.hidden = esAdmin;
+  }
+  if (esAdmin) sel.value = 'aparte';
+  const nota = el('compra-pago-nota');
+  if (nota) nota.classList.toggle('hidden', !esAdmin);
+}
+
 
 function poblarProveedores() {
   poblarSelectCatalogo(el('compra-proveedor'), listarProveedores(), { labelNueva: '➕ Nuevo proveedor…' });
@@ -322,10 +340,12 @@ export function initCompras() {
 
   renderItems();
   poblarProveedores();
+  aplicarRolCompras();
   renderHistorial();
 }
 
 export function refrescarCompras() {
   poblarProveedores();
+  aplicarRolCompras();
   renderHistorial();
 }

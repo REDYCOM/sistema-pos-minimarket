@@ -23,7 +23,7 @@ const el = id => document.getElementById(id);
 
 // Versión visible de la app (subir junto con la del service worker). Sirve para
 // saber de un vistazo si un cajero quedó con una versión vieja en caché.
-const APP_VERSION = 'v31';
+const APP_VERSION = 'v32';
 
 let pendingUserId = null; // usuario que está fijando su contraseña inicial
 
@@ -61,16 +61,39 @@ function goToApertura() {
   showView('view-apertura');
 }
 
+// Pestañas que solo ve el ADMIN (control del negocio).
+const TABS_SOLO_ADMIN = ['tab-btn-configuracion', 'tab-btn-historial', 'tab-btn-estadisticas', 'tab-btn-recomendaciones'];
+// Pestañas ligadas a la CAJA del turno: solo el vendedor. El admin administra y
+// no vende, así que no abre caja ni toca el efectivo del cajón.
+const TABS_SOLO_VENDEDOR = ['venta', 'dinero', 'devoluciones'];
+
+function esAdminActual() {
+  return getSession()?.role === 'admin';
+}
+
 function goToDashboard() {
   const session = getSession();
   const esAdmin = session.role === 'admin';
-  ['tab-btn-configuracion', 'tab-btn-historial', 'tab-btn-estadisticas', 'tab-btn-recomendaciones']
-    .forEach(id => el(id).classList.toggle('hidden', !esAdmin));
+  TABS_SOLO_ADMIN.forEach(id => el(id).classList.toggle('hidden', !esAdmin));
+  TABS_SOLO_VENDEDOR.forEach(t =>
+    document.querySelector(`.tab-btn[data-tab="${t}"]`)?.classList.toggle('hidden', esAdmin));
+  // El admin no tiene turno que cerrar: sale con su propio botón.
+  el('btn-cerrar-turno').classList.toggle('hidden', esAdmin);
+  el('btn-salir-admin').classList.toggle('hidden', !esAdmin);
   refrescarDashboard();
   refrescarProductosInventario();
-  refrescarDinero();
-  showTab('venta');
+  if (!esAdmin) refrescarDinero();
+  // El admin entra directo al control de ventas; el vendedor, a vender.
+  showTab(esAdmin ? 'historial' : 'venta');
+  if (esAdmin) refrescarHistorial();
   showView('view-dashboard');
+}
+
+// A dónde va cada rol después de identificarse: el vendedor abre caja primero,
+// el admin entra directo (no vende, no necesita turno).
+function irTrasLogin() {
+  if (esAdminActual()) goToDashboard();
+  else goToApertura();
 }
 
 function routeBySession() {
@@ -79,6 +102,8 @@ function routeBySession() {
     showView('view-login');
     return;
   }
+  // El admin no vende: entra directo al panel, sin apertura de caja.
+  if (session.role === 'admin') { goToDashboard(); return; }
   if (!session.turno) {
     goToApertura();
   } else {
@@ -105,7 +130,7 @@ function initLoginForm() {
     } else if (resultado.status === 'ok') {
       startSession(resultado.user);
       el('form-login').reset();
-      goToApertura();
+      irTrasLogin();
     }
   });
 }
@@ -130,7 +155,7 @@ function initSetPasswordForm() {
     errorEl.classList.add('hidden');
     e.target.reset();
     startSession(usuario);
-    goToApertura();
+    irTrasLogin();
   });
 }
 
@@ -274,13 +299,22 @@ async function init() {
     else document.querySelector('.tab-btn[data-tab="venta"]')?.click(); // el click ya enfoca
   };
   const F_TABS = { F2: 'inventario', F3: 'productos', F4: 'dinero', F5: 'compras', F6: 'devoluciones' };
+  // Un atajo solo aplica si su pestaña está visible para el rol actual (el admin
+  // no tiene Venta, Entrada/Salida ni Devoluciones).
+  const tabDisponible = t => {
+    const btn = document.querySelector(`.tab-btn[data-tab="${t}"]`);
+    return btn && !btn.classList.contains('hidden');
+  };
   document.addEventListener('keydown', e => {
     if (!el('view-dashboard').classList.contains('active')) return;
     if (document.querySelector('.modal:not(.hidden)')) return;
-    if (e.key === 'Escape') { irAVenta(); return; }
-    if (e.key === 'F1') { e.preventDefault(); document.getElementById('btn-cancelar-venta')?.click(); return; }
+    if (e.key === 'Escape') { if (tabDisponible('venta')) irAVenta(); return; }
+    if (e.key === 'F1') {
+      if (!tabDisponible('venta')) return;
+      e.preventDefault(); document.getElementById('btn-cancelar-venta')?.click(); return;
+    }
     const tab = F_TABS[e.key];
-    if (tab) { e.preventDefault(); document.querySelector(`.tab-btn[data-tab="${tab}"]`)?.click(); }
+    if (tab && tabDisponible(tab)) { e.preventDefault(); document.querySelector(`.tab-btn[data-tab="${tab}"]`)?.click(); }
   });
 
   // La UI ya es interactiva; lo que depende de datos espera a que Firestore

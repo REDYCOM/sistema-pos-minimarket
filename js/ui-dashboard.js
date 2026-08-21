@@ -317,6 +317,14 @@ export function initDashboard() {
   });
 
   el('btn-cerrar-turno').addEventListener('click', abrirModalCierre);
+  // El admin no vende: no tiene turno que cerrar, así que sale con su propio
+  // botón (limpia la sesión sin pasar por el cierre de caja).
+  el('btn-salir-admin').addEventListener('click', async () => {
+    if (!await confirmar('¿Cerrar sesión?', { aceptar: 'Sí, salir' })) return;
+    clearSession();
+    window.dispatchEvent(new CustomEvent('pos:logout'));
+  });
+
   el('btn-cerrar-modal-cierre').addEventListener('click', () => cerrarModal(el('modal-cierre')));
 
   el('btn-confirmar-cierre').addEventListener('click', () => {
@@ -344,7 +352,7 @@ export function refrescarDashboard() {
   el('sidebar-rol').textContent = s?.role === 'admin' ? 'Administrador' : 'Cajero';
   resetVenta();
   actualizarAlertaStockBajo();
-  enfocarBusqueda();
+  if (s?.role !== 'admin') enfocarBusqueda(); // el admin no vende
 }
 
 // Pone el cursor en el campo de búsqueda para vender sin tener que hacer clic.

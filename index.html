@@ -108,6 +108,7 @@
         <span id="app-version" class="app-version" title="Versión de la app instalada"></span>
         <div id="clock" class="clock">🕒</div>
         <button id="btn-cerrar-turno" class="btn btn-danger">🔒 Cerrar turno</button>
+        <button id="btn-salir-admin" class="btn btn-danger hidden">🚪 Salir</button>
       </div>
     </header>
 
@@ -271,6 +272,7 @@
             <option value="caja">Efectivo de caja (descuenta del turno)</option>
             <option value="aparte">Aparte (fondos del negocio)</option>
           </select>
+          <p id="compra-pago-nota" class="hint hidden">ℹ️ Como administrador no manejas caja: las compras se registran con fondos del negocio.</p>
         </div>
         <div class="compra-cabecera-accion">
           <button type="button" id="btn-agregar-item-compra" class="btn btn-primary">➕ Nuevo producto</button>
