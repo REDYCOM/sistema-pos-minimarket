@@ -9,6 +9,7 @@ import { exportarInventarioExcel, importarInventarioExcel } from './backup.js';
 import { refrescarAvisos } from './avisos.js';
 import { toast } from './toast.js';
 import { abrirModal, cerrarModal, confirmar } from './modal.js';
+import { navegarFilas } from './util.js';
 
 const el = id => document.getElementById(id);
 const money = n => `Bs ${Number(n).toFixed(2)}`;
@@ -236,6 +237,12 @@ export function initProductosInventario() {
 
   el('prod-buscar').addEventListener('input', renderProductos);
   el('prod-filtro-precio').addEventListener('change', renderProductos);
+  // Navegación con flechas ↑/↓ sobre las filas filtradas; Enter sobre una fila
+  // resaltada abre su edición. Se registra ANTES del keydown de escaneo, para
+  // que Enter con fila activa edite y sin fila activa siga limpiando el campo.
+  navegarFilas(el('prod-buscar'), el('productos-body'), {
+    onEnter: id => { const p = db.productos.find(id); if (p) abrirModalProducto(p); },
+  });
   // Verificación rápida por código de barras: al escanear (Enter), se deja el
   // producto encontrado a la vista y se limpia el campo con el cursor listo para
   // el siguiente. No re-renderiza, así el resultado del escaneo sigue visible.

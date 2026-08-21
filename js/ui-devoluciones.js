@@ -4,6 +4,7 @@ import { registrarDevolucion, listarDevoluciones, totalDevoluciones } from './de
 import { actualizarAlertaStockBajo } from './ui-dashboard.js';
 import { toast } from './toast.js';
 import { confirmar } from './modal.js';
+import { navegarSugerencias } from './util.js';
 
 const el = id => document.getElementById(id);
 const money = n => `Bs ${Number(n).toFixed(2)}`;
@@ -109,6 +110,7 @@ export function initDevoluciones() {
   el('btn-registrar-devolucion').addEventListener('click', registrar);
 
   // Buscador en línea de productos existentes.
+  navegarSugerencias(el('devolucion-buscar'), el('devolucion-sugerencias'));
   el('devolucion-buscar').addEventListener('input', e => renderSugerencias(e.target.value));
   el('devolucion-buscar').addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); el('devolucion-sugerencias').querySelector('.sugerencia-item[data-id]')?.click(); }

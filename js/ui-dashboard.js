@@ -7,7 +7,7 @@ import { imprimirTicket } from './ticket.js';
 import { toast } from './toast.js';
 import { abrirModal, cerrarModal, confirmar } from './modal.js';
 import { refrescarAvisos } from './avisos.js';
-import { seleccionarAlEnfocar } from './util.js';
+import { seleccionarAlEnfocar, navegarSugerencias } from './util.js';
 
 let carrito = [];
 let ultimaVenta = null; // para reimprimir el ticket sin frenar la venta
@@ -209,6 +209,8 @@ async function cancelarVenta() {
 }
 
 export function initDashboard() {
+  // Navegación con flechas ↑/↓ en las sugerencias (antes del keydown propio).
+  navegarSugerencias(el('busqueda-producto'), el('sugerencias'));
   el('busqueda-producto').addEventListener('input', e => renderSugerencias(e.target.value));
 
   el('busqueda-producto').addEventListener('keydown', e => {

@@ -7,7 +7,7 @@ import { abrirCalculadora } from './calculadora-costo.js';
 import { exportarReportePDF, tablaHTML, kpisHTML } from './pdf.js';
 import { toast } from './toast.js';
 import { abrirModal, cerrarModal, confirmar } from './modal.js';
-import { seleccionarAlEnfocar } from './util.js';
+import { seleccionarAlEnfocar, navegarSugerencias } from './util.js';
 
 const el = id => document.getElementById(id);
 const money = n => `Bs ${Number(n).toFixed(2)}`;
@@ -230,6 +230,9 @@ export function initCompras() {
   el('form-item-compra').addEventListener('submit', e => { e.preventDefault(); agregarNuevoDesdeModal(); });
 
   // Buscador en línea: agrega productos existentes sin abrir modal (registro rápido).
+  // Navegación con flechas ↑/↓ (antes del keydown propio, para que Enter sobre un
+  // ítem resaltado lo elija en vez de tomar el primero).
+  navegarSugerencias(el('compra-buscar'), el('compra-sugerencias'));
   el('compra-buscar').addEventListener('input', e => renderSugerenciasCompra(e.target.value));
   el('compra-buscar').addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); el('compra-sugerencias').querySelector('.sugerencia-item[data-id]')?.click(); }
@@ -304,6 +307,18 @@ export function initCompras() {
   el('compra-filtro-fecha-desde').addEventListener('input', renderHistorial);
   el('compra-filtro-fecha-hasta').addEventListener('input', renderHistorial);
   el('btn-compras-pdf').addEventListener('click', exportarPDF);
+
+  // Atajos de teclado para registrar más rápido (solo con la pestaña Compras
+  // activa y sin modales abiertos). No chocan con los globales F1–F6.
+  //   F7 = ir al buscador de producto · F8 = nuevo producto · F9 = registrar compra.
+  document.addEventListener('keydown', e => {
+    if (!el('view-dashboard')?.classList.contains('active')) return;
+    if (!el('tab-compras')?.classList.contains('active')) return;
+    if (document.querySelector('.modal:not(.hidden)')) return;
+    if (e.key === 'F7') { e.preventDefault(); el('compra-buscar').focus(); }
+    else if (e.key === 'F8') { e.preventDefault(); abrirModalNuevo(); }
+    else if (e.key === 'F9') { e.preventDefault(); registrar(); }
+  });
 
   renderItems();
   poblarProveedores();

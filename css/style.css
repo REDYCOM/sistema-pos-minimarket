@@ -305,6 +305,8 @@ input.input-sm { width: 6rem; display: inline-block; padding: 0.4rem; border-rad
 .sugerencia-item { padding: 0.75rem 0.9rem; cursor: pointer; border-bottom: 1px solid var(--color-border); transition: background 0.12s ease; }
 .sugerencia-item:last-child { border-bottom: none; }
 .sugerencia-item:hover { background: var(--color-primary-light); }
+/* Ítem resaltado al navegar con las flechas ↑/↓. */
+.sugerencia-item.sugerencia-activa { background: var(--color-primary-light); box-shadow: inset 3px 0 0 var(--color-primary); }
 .sugerencia-item .sin-precio { color: var(--color-danger); font-size: 0.82rem; font-weight: 600; }
 
 .tabla-carrito, .tabla-datos {
@@ -353,6 +355,8 @@ input.bloque-cant {
 }
 input.bloque-cant::-webkit-inner-spin-button { opacity: 0.6; }
 .tabla-datos tbody tr:hover, .tabla-carrito tbody tr:hover { background: #fafbfc; }
+/* Fila resaltada al navegar la lista de productos con las flechas ↑/↓. */
+.tabla-datos tbody tr.fila-activa { background: var(--color-primary-light); box-shadow: inset 3px 0 0 var(--color-primary); }
 
 /* Carrito compacto: filas más chicas para ver más productos en una misma venta. */
 .tabla-carrito th, .tabla-carrito td { padding: 0.3rem 0.55rem; }
