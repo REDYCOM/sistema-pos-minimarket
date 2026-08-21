@@ -25,7 +25,7 @@ const el = id => document.getElementById(id);
 
 // Versión visible de la app (subir junto con la del service worker). Sirve para
 // saber de un vistazo si un cajero quedó con una versión vieja en caché.
-const APP_VERSION = 'v38';
+const APP_VERSION = 'v39';
 
 let pendingUserId = null; // usuario que está fijando su contraseña inicial
 
