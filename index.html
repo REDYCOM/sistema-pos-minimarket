@@ -93,6 +93,7 @@
       <button class="tab-btn" data-tab="dinero">💵 <span>Entrada/Salida</span><kbd class="tab-fkey">F4</kbd></button>
       <button class="tab-btn" data-tab="compras">🧾 <span>Compras</span><kbd class="tab-fkey">F5</kbd></button>
       <button class="tab-btn" data-tab="devoluciones">↩️ <span>Devoluciones</span><kbd class="tab-fkey">F6</kbd></button>
+      <button class="tab-btn hidden" data-tab="gastos" id="tab-btn-gastos">🧾 <span>Gastos</span></button>
       <button class="tab-btn hidden" data-tab="recomendaciones" id="tab-btn-recomendaciones">💡 <span>Recomendaciones</span></button>
       <button class="tab-btn hidden" data-tab="historial" id="tab-btn-historial">📊 <span>Ventas/Historial</span></button>
       <button class="tab-btn hidden" data-tab="estadisticas" id="tab-btn-estadisticas">📈 <span>Estadísticas</span></button>
@@ -509,6 +510,76 @@
   </div>
 
   <!-- TAB VENTAS / HISTORIAL (solo admin) -->
+  <!-- TAB GASTOS (solo admin) -->
+  <div class="tab-content" id="tab-gastos">
+    <div class="seccion-header">
+      <h2>🧾 Gastos del negocio</h2>
+      <div class="seccion-header-derecha">
+        <button id="btn-gasto-copiar" class="btn">📋 Copiar gastos del mes anterior</button>
+        <button id="btn-gasto-pdf" class="btn btn-primary">📄 Exportar PDF</button>
+      </div>
+    </div>
+    <p class="hint">Alquiler, sueldos, servicios e impuestos. Estos gastos <strong>no</strong> son las "salidas de dinero" de caja: aquellas mueven el efectivo del cajón, estos bajan la <strong>ganancia real</strong> del negocio, se paguen como se paguen.</p>
+
+    <div class="card">
+      <h3 class="sub-titulo">➕ Registrar un gasto</h3>
+      <form id="form-gasto" class="gasto-form">
+        <div>
+          <label for="gasto-fecha">Fecha</label>
+          <input type="date" id="gasto-fecha" required>
+        </div>
+        <div>
+          <label for="gasto-categoria">Categoría</label>
+          <select id="gasto-categoria" required></select>
+        </div>
+        <div class="gasto-form-ancho">
+          <label for="gasto-descripcion">Descripción (opcional)</label>
+          <input type="text" id="gasto-descripcion" placeholder="Ej. Sueldo de agosto — Nayely" autocomplete="off">
+        </div>
+        <div>
+          <label for="gasto-monto">Monto (Bs)</label>
+          <input type="number" id="gasto-monto" min="0.01" step="0.01" required>
+        </div>
+        <div>
+          <label for="gasto-forma-pago">Forma de pago</label>
+          <select id="gasto-forma-pago">
+            <option value="aparte">Aparte (fondos del negocio)</option>
+            <option value="caja">Efectivo de caja</option>
+          </select>
+        </div>
+        <div class="gasto-form-accion">
+          <button type="submit" class="btn btn-primary btn-lg">💾 Registrar gasto</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="toolbar">
+      <label class="filtro-fecha">Desde <input type="date" id="gasto-desde"></label>
+      <label class="filtro-fecha">Hasta <input type="date" id="gasto-hasta"></label>
+      <button id="btn-gasto-mes-actual" class="btn">📅 Mes actual</button>
+    </div>
+
+    <div id="gasto-kpis" class="stat-grid"></div>
+    <p class="hint">La <strong>ganancia neta</strong> es lo que realmente queda: ganancia bruta (venta − costo de la mercadería) menos estos gastos.</p>
+
+    <h3 class="sub-titulo">📊 Gastos por categoría</h3>
+    <table class="tabla-datos">
+      <thead><tr><th>Categoría</th><th>N.º</th><th>Total</th><th>% del total</th></tr></thead>
+      <tbody id="gasto-categorias"></tbody>
+    </table>
+
+    <div class="seccion-header">
+      <h3 class="sub-titulo">📜 Detalle de gastos</h3>
+      <strong id="gasto-total">Total de gastos: Bs 0.00</strong>
+    </div>
+    <div class="grafico-scroll">
+      <table class="tabla-datos">
+        <thead><tr><th>Fecha</th><th>Categoría</th><th>Descripción</th><th>Pago</th><th>Monto</th><th></th></tr></thead>
+        <tbody id="gasto-body"></tbody>
+      </table>
+    </div>
+  </div>
+
   <div class="tab-content" id="tab-historial">
     <div class="seccion-header">
       <h2>📊 Ventas e Historial</h2>

@@ -19,6 +19,7 @@ const NOMBRES_COLECCION = {
   movimientos: 'movimientos_dinero',
   compras: 'compras',
   devoluciones: 'devoluciones',
+  gastos: 'gastos',
 };
 
 export function uid() {
@@ -87,6 +88,7 @@ export const db = {
   movimientos: crearColeccion(NOMBRES_COLECCION.movimientos),
   compras: crearColeccion(NOMBRES_COLECCION.compras),
   devoluciones: crearColeccion(NOMBRES_COLECCION.devoluciones),
+  gastos: crearColeccion(NOMBRES_COLECCION.gastos),
 };
 
 // --- Ajustes del negocio (un solo documento sincronizado) ---
@@ -183,7 +185,7 @@ export async function resetearTodo() {
 // Pensado para arrancar un año nuevo con las cuentas en cero pero conservando
 // el inventario cargado. Devuelve cuántos registros borró de cada colección.
 export async function borrarHistorialMovimiento() {
-  const aBorrar = ['ventas', 'compras', 'aperturas', 'cierres', 'movimientos', 'devoluciones'];
+  const aBorrar = ['ventas', 'compras', 'aperturas', 'cierres', 'movimientos', 'devoluciones', 'gastos'];
   const borrados = {};
   for (const nombre of aBorrar) {
     const col = db[nombre];

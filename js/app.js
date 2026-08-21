@@ -11,6 +11,7 @@ import { initDevoluciones, refrescarDevoluciones } from './ui-devoluciones.js';
 import { initUsuarios, refrescarUsuarios } from './ui-usuarios.js';
 import { initHistorial, refrescarHistorial } from './ui-historial.js';
 import { initMisVentas, refrescarMisVentas } from './ui-misventas.js';
+import { initGastos, refrescarGastos } from './ui-gastos.js';
 import { initRecomendaciones, refrescarRecomendaciones } from './ui-recomendaciones.js';
 import { initEstadisticas, refrescarEstadisticas } from './ui-estadisticas.js';
 import { initCalculadora } from './calculadora-costo.js';
@@ -24,7 +25,7 @@ const el = id => document.getElementById(id);
 
 // Versión visible de la app (subir junto con la del service worker). Sirve para
 // saber de un vistazo si un cajero quedó con una versión vieja en caché.
-const APP_VERSION = 'v36';
+const APP_VERSION = 'v37';
 
 let pendingUserId = null; // usuario que está fijando su contraseña inicial
 
@@ -63,7 +64,7 @@ function goToApertura() {
 }
 
 // Pestañas que solo ve el ADMIN (control del negocio).
-const TABS_SOLO_ADMIN = ['tab-btn-configuracion', 'tab-btn-historial', 'tab-btn-estadisticas', 'tab-btn-recomendaciones'];
+const TABS_SOLO_ADMIN = ['tab-btn-configuracion', 'tab-btn-historial', 'tab-btn-estadisticas', 'tab-btn-recomendaciones', 'tab-btn-gastos'];
 // Pestañas ligadas a la CAJA del turno: solo el vendedor. El admin administra y
 // no vende, así que no abre caja ni toca el efectivo del cajón.
 const TABS_SOLO_VENDEDOR = ['venta', 'misventas', 'dinero', 'devoluciones'];
@@ -215,6 +216,8 @@ function initTabs() {
         enfocarCampo('devolucion-buscar');
       } else if (btn.dataset.tab === 'recomendaciones') {
         refrescarRecomendaciones();
+      } else if (btn.dataset.tab === 'gastos') {
+        refrescarGastos();
       } else if (btn.dataset.tab === 'historial') {
         refrescarHistorial();
       } else if (btn.dataset.tab === 'estadisticas') {
@@ -287,6 +290,7 @@ async function init() {
   initUsuarios();
   initHistorial();
   initMisVentas();
+  initGastos();
   initEstadisticas();
   initCalculadora();
   initModales();

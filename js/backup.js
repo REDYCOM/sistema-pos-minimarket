@@ -3,7 +3,7 @@ import { crearProducto, actualizarProducto } from './productos.js';
 import { toast } from './toast.js';
 
 // --- Respaldo COMPLETO (todos los datos, en un archivo JSON) ---
-const COLECCIONES = ['users', 'productos', 'ventas', 'aperturas', 'cierres', 'movimientos', 'compras', 'devoluciones'];
+const COLECCIONES = ['users', 'productos', 'ventas', 'aperturas', 'cierres', 'movimientos', 'compras', 'devoluciones', 'gastos'];
 
 export function exportarRespaldoCompleto() {
   try {

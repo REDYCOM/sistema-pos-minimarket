@@ -1,6 +1,7 @@
 import { rankingProductos, serieDiaria, proyeccionVentas, resumenVentas, valorInventario, analisisRotacion, rankingGanancia, resumenMensual, comparativaPeriodos, aniosConVentas, comprasEnRango } from './reportes.js';
 import { turnosAbiertos, efectivoEnCajaTotal } from './caja.js';
 import { toast } from './toast.js';
+import { listarGastos, totalGastos, gastosPorCategoria, gastosPorMes } from './gastos.js';
 import { barrasHorizontales, lineaTemporal, lineaTemporalInteractiva, activarLineaInteractiva } from './graficos.js';
 import { exportarReportePDF, tablaHTML, kpisHTML } from './pdf.js';
 
@@ -317,6 +318,31 @@ function exportarCierreAnio() {
       meses.map(m => [mesLegible(m.mes), m.cantidad, m.diasConVenta, money(m.total),
         money(m.promedioDiario), money(m.ganancia), pct(m.crecimiento)]))}
 
+    <h2>Gastos del negocio y ganancia neta</h2>
+    ${(() => {
+      const gastos = listarGastos(rango);
+      const totalG = totalGastos(gastos);
+      const neta = ganancia.ganancia - totalG;
+      const porMes = gastosPorMes(rango);
+      return `
+        ${kpisHTML([
+          { valor: money(ganancia.ganancia), etiqueta: 'Ganancia bruta (venta − costo)' },
+          { valor: money(totalG), etiqueta: 'Gastos del año' },
+          { valor: money(neta), etiqueta: 'GANANCIA NETA DEL AÑO' },
+        ])}
+        ${gastos.length ? `
+          ${tablaHTML(['Categoría', 'N.º', 'Total', '% de los gastos'],
+            gastosPorCategoria(rango).map(c => [c.categoria, c.cantidad, money(c.total),
+              `${totalG > 0 ? ((c.total / totalG) * 100).toFixed(0) : 0}%`]))}
+          <h2>Ganancia neta mes a mes</h2>
+          ${tablaHTML(['Mes', 'Ganancia bruta', 'Gastos', 'Ganancia neta'],
+            meses.map(m => {
+              const g = porMes.get(m.mes) || 0;
+              return [mesLegible(m.mes), money(m.ganancia), money(g), money(m.ganancia - g)];
+            }))}
+        ` : '<p>No se registraron gastos en el año. Cargalos en la pestaña Gastos para ver la ganancia neta real.</p>'}
+      `;
+    })()}
     <h2>Situación al cierre</h2>
     ${kpisHTML([
       { valor: money(cap.costo + efectivo), etiqueta: 'Capital total (stock + caja)' },
