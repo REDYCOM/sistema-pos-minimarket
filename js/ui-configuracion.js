@@ -6,7 +6,7 @@ import {
 } from './catalogo.js';
 import { toast } from './toast.js';
 import { confirmar, abrirModal, cerrarModal } from './modal.js';
-import { db, getSession, resetearTodo } from './storage.js';
+import { db, getSession, resetearTodo, borrarHistorialMovimiento } from './storage.js';
 import { verifyPassword } from './crypto.js';
 import { exportarInventarioExcel, importarInventarioExcel, exportarRespaldoCompleto, importarRespaldoCompleto } from './backup.js';
 import { imprimirTicketPrueba } from './ticket.js';
@@ -79,6 +79,49 @@ async function ejecutarReset() {
   await resetearTodo();
   toast.info('🗑️ Sistema restablecido. Reiniciando…');
   setTimeout(() => location.reload(), 900);
+}
+
+// Cierre de año: borra el historial de dinero pero conserva el inventario.
+// Mismas protecciones que el reset total (escribir la frase + contraseña de admin).
+async function ejecutarCierreAnio() {
+  const errorEl = el('cierre-anio-error');
+  errorEl.classList.add('hidden');
+
+  if (el('cierre-anio-confirmacion').value.trim().toUpperCase() !== 'CERRAR AÑO') {
+    errorEl.textContent = 'Escribe CERRAR AÑO para confirmar.';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+  const session = getSession();
+  const admin = db.users.find(session?.userId);
+  const valida = admin?.hash && await verifyPassword(el('cierre-anio-password').value, admin.salt, admin.hash);
+  if (!valida) {
+    errorEl.textContent = 'Contraseña de administrador incorrecta.';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
+  const btn = el('btn-confirmar-cierre-anio');
+  btn.disabled = true;
+  btn.textContent = 'Borrando…';
+  const borrados = await borrarHistorialMovimiento();
+  const total = Object.values(borrados).reduce((s, n) => s + n, 0);
+  toast.info(`🧹 Historial borrado (${total} registros). El inventario se conservó. Reiniciando…`);
+  setTimeout(() => location.reload(), 1200);
+}
+
+// Muestra qué se va a borrar y qué se conserva, con los números reales.
+function resumenCierreAnio() {
+  const cont = el('cierre-anio-resumen');
+  if (!cont) return;
+  const productos = db.productos.all();
+  const unidades = productos.reduce((s, p) => s + (Number(p.stock) || 0), 0);
+  cont.innerHTML = `<div class="cierre-anio-cifras">
+    <div>Se borrarán: <strong>${db.ventas.all().length}</strong> ventas · <strong>${db.compras.all().length}</strong> compras ·
+    <strong>${db.devoluciones.all().length}</strong> devoluciones · <strong>${db.aperturas.all().length}</strong> aperturas ·
+    <strong>${db.cierres.all().length}</strong> cierres · <strong>${db.movimientos.all().length}</strong> movimientos.</div>
+    <div>Se conservarán: <strong>${productos.length}</strong> productos con <strong>${unidades}</strong> unidades en stock.</div>
+  </div>`;
 }
 
 const MAX_LOGO_BYTES = 1.5 * 1024 * 1024; // suficiente para un logo, sin inflar demasiado el localStorage
@@ -201,6 +244,16 @@ export function initConfiguracion() {
   el('btn-cerrar-modal-reset').addEventListener('click', () => cerrarModal(el('modal-reset')));
   el('btn-reset-respaldo').addEventListener('click', exportarInventarioExcel);
   el('btn-confirmar-reset').addEventListener('click', ejecutarReset);
+  el('btn-abrir-cierre-anio').addEventListener('click', () => {
+    el('cierre-anio-confirmacion').value = '';
+    el('cierre-anio-password').value = '';
+    el('cierre-anio-error').classList.add('hidden');
+    resumenCierreAnio();
+    abrirModal(el('modal-cierre-anio'));
+  });
+  el('btn-cerrar-modal-cierre-anio').addEventListener('click', () => cerrarModal(el('modal-cierre-anio')));
+  el('btn-cierre-anio-respaldo').addEventListener('click', exportarRespaldoCompleto);
+  el('btn-confirmar-cierre-anio').addEventListener('click', ejecutarCierreAnio);
 
   // Respaldo completo (todos los datos, JSON).
   el('btn-respaldo-completo-descargar').addEventListener('click', exportarRespaldoCompleto);

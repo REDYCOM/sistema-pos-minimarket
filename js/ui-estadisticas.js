@@ -1,5 +1,6 @@
-import { rankingProductos, serieDiaria, proyeccionVentas, resumenVentas, valorInventario, analisisRotacion } from './reportes.js';
+import { rankingProductos, serieDiaria, proyeccionVentas, resumenVentas, valorInventario, analisisRotacion, rankingGanancia, resumenMensual, comparativaPeriodos, aniosConVentas, comprasEnRango } from './reportes.js';
 import { turnosAbiertos, efectivoEnCajaTotal } from './caja.js';
+import { toast } from './toast.js';
 import { barrasHorizontales, lineaTemporal, lineaTemporalInteractiva, activarLineaInteractiva } from './graficos.js';
 import { exportarReportePDF, tablaHTML, kpisHTML } from './pdf.js';
 
@@ -260,6 +261,102 @@ function exportarSinRotacion() {
   });
 }
 
+const NOMBRE_MES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const mesLegible = ym => `${NOMBRE_MES[Number(ym.slice(5, 7)) - 1]} ${ym.slice(0, 4)}`;
+const pct = v => v === null || v === undefined ? '—' : `${v >= 0 ? '▲ +' : '▼ '}${v.toFixed(1)}%`;
+
+// Informe de CIERRE DE AÑO: un único documento con todo lo que hace falta para
+// decidir si el negocio creció — mes a mes, crecimiento, capital e inventario.
+function exportarCierreAnio() {
+  const anio = el('stats-anio').value;
+  const rango = { desde: `${anio}-01-01`, hasta: `${anio}-12-31` };
+
+  const resumen = resumenVentas(rango);
+  const ganancia = gananciaEnRango(rango);
+  const meses = resumenMensual(rango);
+  const comp = comparativaPeriodos(rango);
+  const compras = comprasEnRango(rango);
+  const cap = valorInventario();
+  const efectivo = efectivoEnCajaTotal();
+  const rot = analisisRotacion(rango);
+  const rentables = rankingGanancia(rango).slice(0, 20);
+  const vendidos = rankingProductos(rango).slice(0, 20);
+
+  if (!meses.length) {
+    return toast.warning(`No hay ventas registradas en ${anio}.`);
+  }
+
+  const serieMeses = meses.map(m => ({ dia: m.mes + '-01', total: m.total }));
+  const grafico = meses.length > 1 ? lineaTemporal(serieMeses, []) : '';
+
+  const cuerpo = `
+    ${kpisHTML([
+      { valor: money(resumen.totalVendido), etiqueta: 'Ventas del año' },
+      { valor: money(ganancia.ganancia), etiqueta: `Ganancia real (${ganancia.margen.toFixed(0)}%)` },
+      { valor: resumen.cantidadVentas, etiqueta: 'N.º de ventas' },
+      { valor: money(resumen.ticketPromedio), etiqueta: 'Ticket promedio' },
+      { valor: money(compras.total), etiqueta: 'Invertido en compras' },
+    ])}
+    ${ganancia.ventaSinCosto > 0 ? `<p style="color:#8a6d3b;font-size:11px;margin:4px 0 0">⚠️ La ganancia excluye ${money(ganancia.ventaSinCosto)} en ventas de productos sin precio de compra registrado.</p>` : ''}
+
+    <h2>¿Creció el negocio?</h2>
+    ${comp.disponible ? `
+      ${kpisHTML([
+        { valor: pct(comp.crecimiento), etiqueta: `2.ª mitad del año vs 1.ª` },
+        { valor: money(comp.primera.total), etiqueta: `Primeros ${comp.primera.meses} meses` },
+        { valor: money(comp.segunda.total), etiqueta: `Últimos ${comp.segunda.meses} meses` },
+        { valor: mesLegible(comp.mejorMes.mes), etiqueta: `Mejor mes (${money(comp.mejorMes.total)})` },
+        { valor: mesLegible(comp.peorMes.mes), etiqueta: `Mes más flojo (${money(comp.peorMes.total)})` },
+      ])}
+      <p style="font-size:12px;color:#667c72">Se comparan los primeros meses del año contra los últimos. Un porcentaje positivo indica que el negocio vendió más hacia el final del año.</p>
+    ` : `<p>Se necesitan al menos 2 meses con ventas para comparar. Hay ${comp.meses}.</p>`}
+
+    <h2>Ventas mes a mes</h2>
+    ${grafico}
+    ${tablaHTML(['Mes', 'Ventas', 'Días con venta', 'Total vendido', 'Promedio diario', 'Ganancia', 'Crecimiento'],
+      meses.map(m => [mesLegible(m.mes), m.cantidad, m.diasConVenta, money(m.total),
+        money(m.promedioDiario), money(m.ganancia), pct(m.crecimiento)]))}
+
+    <h2>Situación al cierre</h2>
+    ${kpisHTML([
+      { valor: money(cap.costo + efectivo), etiqueta: 'Capital total (stock + caja)' },
+      { valor: money(cap.costo), etiqueta: 'Capital en stock (a costo)' },
+      { valor: money(efectivo), etiqueta: 'Efectivo en caja' },
+      { valor: money(cap.venta), etiqueta: 'Valor del inventario a precio de venta' },
+      { valor: money(cap.ganancia), etiqueta: 'Ganancia potencial del stock' },
+    ])}
+    ${tablaHTML(['Concepto', 'Valor'], [
+      ['Productos en catálogo', cap.productos],
+      ['Unidades en stock', cap.unidades],
+      ['Productos sin ninguna venta en el año', rot.sinVenta.length],
+      ['Capital inmovilizado (stock que no rotó)', money(rot.capitalParado)],
+    ])}
+
+    <h2>Productos más rentables del año (top 20)</h2>
+    ${tablaHTML(['#', 'Producto', 'Unidades', 'Ganancia'],
+      rentables.map((p, i) => [i + 1, p.nombre, p.cantidad, money(p.ganancia)]))}
+
+    <h2>Productos más vendidos del año (top 20)</h2>
+    ${tablaHTML(['#', 'Producto', 'Unidades', 'Monto'],
+      vendidos.map((p, i) => [i + 1, p.nombre, p.cantidad, money(p.monto)]))}
+  `;
+
+  exportarReportePDF({
+    titulo: `Informe de Cierre de Año ${anio}`,
+    subtitulo: `Período: 01/01/${anio} — 31/12/${anio} · Generado el ${new Date().toLocaleDateString('es-BO')}`,
+    cuerpoHTML: cuerpo,
+  });
+}
+
+function poblarAnios() {
+  const sel = el('stats-anio');
+  if (!sel) return;
+  const anios = aniosConVentas();
+  const actual = String(new Date().getFullYear());
+  if (!anios.includes(actual)) anios.unshift(actual);
+  sel.innerHTML = anios.map(a => `<option value="${a}">${a}</option>`).join('');
+}
+
 export function initEstadisticas() {
   el('stats-desde').addEventListener('input', render);
   el('stats-hasta').addEventListener('input', render);
@@ -269,6 +366,8 @@ export function initEstadisticas() {
   el('btn-stats-rotacion').addEventListener('click', exportarRotacion);
   el('btn-stats-proyeccion').addEventListener('click', exportarProyeccion);
   el('btn-stats-sin-rotacion').addEventListener('click', exportarSinRotacion);
+  poblarAnios();
+  el('btn-stats-cierre-anio').addEventListener('click', exportarCierreAnio);
   render();
 }
 

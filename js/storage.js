@@ -176,3 +176,24 @@ export async function resetearTodo() {
   localStorage.removeItem(KEYS.config);
   localStorage.removeItem(KEYS.session);
 }
+
+// Borra SOLO el historial de movimiento de dinero: ventas, compras, caja
+// (aperturas y cierres), movimientos de efectivo y devoluciones. NO toca los
+// productos (catálogo, stock ni precios), ni los usuarios, ni los ajustes.
+// Pensado para arrancar un año nuevo con las cuentas en cero pero conservando
+// el inventario cargado. Devuelve cuántos registros borró de cada colección.
+export async function borrarHistorialMovimiento() {
+  const aBorrar = ['ventas', 'compras', 'aperturas', 'cierres', 'movimientos', 'devoluciones'];
+  const borrados = {};
+  for (const nombre of aBorrar) {
+    const col = db[nombre];
+    if (!col) continue;
+    const items = col.all();
+    borrados[nombre] = items.length;
+    for (const item of items) col.remove(item.id);
+  }
+  // La sesión guarda el turno abierto, que acaba de dejar de existir.
+  const s = getSession();
+  if (s) setSession({ ...s, turno: null });
+  return borrados;
+}

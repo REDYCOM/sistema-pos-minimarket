@@ -451,3 +451,79 @@ export function ventasPorDiaDetalle({ desde, hasta } = {}) {
     }).sort((x, y) => (x.aperturaFecha || '').localeCompare(y.aperturaFecha || '')),
   })).sort((a, b) => b.dia.localeCompare(a.dia));
 }
+
+// --- Resumen MES A MES (para el informe de cierre de año) ---
+// Devuelve una fila por mes con ventas, total, ganancia y el % de crecimiento
+// respecto al mes anterior, que es lo que responde "¿creció el negocio?".
+export function resumenMensual({ desde, hasta } = {}) {
+  const ventas = ventasEnRango({ desde, hasta });
+  const porMes = new Map(); // 'YYYY-MM' -> acumulado
+  ventas.forEach(v => {
+    const mes = soloFecha(v.fecha).slice(0, 7);
+    const prev = porMes.get(mes) || { mes, cantidad: 0, total: 0, efectivo: 0, qr: 0, ganancia: 0, dias: new Set() };
+    prev.cantidad += 1;
+    prev.total += v.total;
+    if (v.metodoPago === 'efectivo') prev.efectivo += v.total;
+    else if (v.metodoPago === 'qr') prev.qr += v.total;
+    prev.dias.add(soloFecha(v.fecha));
+    // Ganancia con la misma regla del resto: solo ítems con costo conocido.
+    let brutaVenta = 0, brutaConCosto = 0, costoTotal = 0;
+    v.items.forEach(item => {
+      const sub = item.cantidad * item.precioUnit;
+      brutaVenta += sub;
+      const costo = costoConocido(item);
+      if (costo === null) return;
+      brutaConCosto += sub;
+      costoTotal += item.cantidad * costo;
+    });
+    const desc = brutaVenta > 0 ? (Number(v.descuento) || 0) * (brutaConCosto / brutaVenta) : 0;
+    prev.ganancia += brutaConCosto - desc - costoTotal;
+    porMes.set(mes, prev);
+  });
+
+  const filas = [...porMes.values()]
+    .map(m => ({ ...m, diasConVenta: m.dias.size, promedioDiario: m.dias.size ? m.total / m.dias.size : 0 }))
+    .sort((a, b) => a.mes.localeCompare(b.mes));
+
+  // Crecimiento respecto al mes anterior (el primero no tiene con qué comparar).
+  filas.forEach((m, i) => {
+    const ant = i > 0 ? filas[i - 1].total : null;
+    m.crecimiento = (ant && ant > 0) ? ((m.total - ant) / ant) * 100 : null;
+  });
+  return filas;
+}
+
+// Compara la primera mitad del período contra la segunda: la señal más simple de
+// si el negocio viene creciendo o cayendo a lo largo del año.
+export function comparativaPeriodos({ desde, hasta } = {}) {
+  const meses = resumenMensual({ desde, hasta });
+  if (meses.length < 2) return { disponible: false, meses: meses.length };
+  const corte = Math.ceil(meses.length / 2);
+  const suma = arr => arr.reduce((s, m) => s + m.total, 0);
+  const sumaG = arr => arr.reduce((s, m) => s + m.ganancia, 0);
+  const p1 = meses.slice(0, corte), p2 = meses.slice(corte);
+  const t1 = suma(p1), t2 = suma(p2);
+  return {
+    disponible: true,
+    primera: { meses: p1.length, total: t1, ganancia: sumaG(p1) },
+    segunda: { meses: p2.length, total: t2, ganancia: sumaG(p2) },
+    crecimiento: t1 > 0 ? ((t2 - t1) / t1) * 100 : null,
+    mejorMes: meses.reduce((a, b) => (b.total > a.total ? b : a), meses[0]),
+    peorMes: meses.reduce((a, b) => (b.total < a.total ? b : a), meses[0]),
+  };
+}
+
+// Años que tienen ventas registradas (para el selector del informe anual).
+export function aniosConVentas() {
+  const anios = new Set(db.ventas.all().filter(v => !v.cancelada).map(v => soloFecha(v.fecha).slice(0, 4)));
+  return [...anios].sort((a, b) => b.localeCompare(a));
+}
+
+// Total invertido en compras dentro del período (para el balance del año).
+export function comprasEnRango({ desde, hasta } = {}) {
+  const compras = db.compras.all().filter(c => enRango(c.fecha, desde, hasta));
+  return {
+    cantidad: compras.length,
+    total: compras.reduce((s, c) => s + Number(c.total ?? c.monto ?? 0), 0),
+  };
+}
