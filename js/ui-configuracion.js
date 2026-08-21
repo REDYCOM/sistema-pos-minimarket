@@ -7,11 +7,13 @@ import {
 import { toast } from './toast.js';
 import { confirmar, abrirModal, cerrarModal } from './modal.js';
 import { db, getSession, resetearTodo, borrarHistorialMovimiento } from './storage.js';
+import { turnosAbiertos } from './caja.js';
 import { verifyPassword } from './crypto.js';
 import { exportarInventarioExcel, importarInventarioExcel, exportarRespaldoCompleto, importarRespaldoCompleto } from './backup.js';
 import { imprimirTicketPrueba } from './ticket.js';
 
 const el = id => document.getElementById(id);
+const money = n => `Bs ${Number(n).toFixed(2)}`;
 
 function renderTicketConfig() {
   const c = getConfig();
@@ -87,6 +89,15 @@ async function ejecutarCierreAnio() {
   const errorEl = el('cierre-anio-error');
   errorEl.classList.add('hidden');
 
+  // Guarda dura (no solo el botón deshabilitado): con cajas abiertas se perderían
+  // las ventas del turno en curso y el cajero quedaría con un turno inexistente.
+  const abiertas = turnosAbiertos();
+  if (abiertas.length) {
+    errorEl.textContent = `Hay ${abiertas.length} caja(s) abierta(s) (${abiertas.map(t => t.cajero).join(', ')}). Cerralas antes de cerrar el año.`;
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
   if (el('cierre-anio-confirmacion').value.trim().toUpperCase() !== 'CERRAR AÑO') {
     errorEl.textContent = 'Escribe CERRAR AÑO para confirmar.';
     errorEl.classList.remove('hidden');
@@ -110,18 +121,37 @@ async function ejecutarCierreAnio() {
   setTimeout(() => location.reload(), 1200);
 }
 
-// Muestra qué se va a borrar y qué se conserva, con los números reales.
+// Muestra qué se va a borrar y qué se conserva, con los números reales, y BLOQUEA
+// el cierre si hay cajas abiertas. Motivo: al borrar el historial se borran las
+// aperturas, pero la PC del cajero conserva su turno en su propio localStorage;
+// seguiría vendiendo contra un turno que ya no existe y esas ventas no entrarían
+// en ningún cierre. Además se perderían las ventas del turno en curso.
 function resumenCierreAnio() {
   const cont = el('cierre-anio-resumen');
   if (!cont) return;
   const productos = db.productos.all();
   const unidades = productos.reduce((s, p) => s + (Number(p.stock) || 0), 0);
-  cont.innerHTML = `<div class="cierre-anio-cifras">
-    <div>Se borrarán: <strong>${db.ventas.all().length}</strong> ventas · <strong>${db.compras.all().length}</strong> compras ·
-    <strong>${db.devoluciones.all().length}</strong> devoluciones · <strong>${db.aperturas.all().length}</strong> aperturas ·
-    <strong>${db.cierres.all().length}</strong> cierres · <strong>${db.movimientos.all().length}</strong> movimientos.</div>
-    <div>Se conservarán: <strong>${productos.length}</strong> productos con <strong>${unidades}</strong> unidades en stock.</div>
-  </div>`;
+  const abiertas = turnosAbiertos();
+  const btn = el('btn-confirmar-cierre-anio');
+
+  const bloqueo = abiertas.length > 0;
+  if (btn) {
+    btn.disabled = bloqueo;
+    btn.title = bloqueo ? 'Cerrá primero todas las cajas abiertas' : '';
+  }
+
+  cont.innerHTML = `
+    ${bloqueo ? `<div class="reset-alerta">🚫 No se puede cerrar el año: hay <strong>${abiertas.length} caja(s) abierta(s)</strong>.<br>
+      ${abiertas.map(t => `• <strong>${t.cajero}</strong> — abrió el ${new Date(t.fecha).toLocaleString('es-BO')} · lleva ${money(t.totalVendido)} vendido`).join('<br>')}
+      <br><br>Cerralas primero: las del día las cierra el cajero desde su PC ("Cerrar turno"); las de días anteriores las cerrás vos en Ventas/Historial → "Cajas abiertas ahora".</div>` : ''}
+    <div class="cierre-anio-cifras">
+      <div>Se borrarán: <strong>${db.ventas.all().length}</strong> ventas · <strong>${db.compras.all().length}</strong> compras ·
+      <strong>${db.devoluciones.all().length}</strong> devoluciones · <strong>${db.gastos.all().length}</strong> gastos ·
+      <strong>${db.aperturas.all().length}</strong> aperturas · <strong>${db.cierres.all().length}</strong> cierres ·
+      <strong>${db.movimientos.all().length}</strong> movimientos.</div>
+      <div>Se conservarán: <strong>${productos.length}</strong> productos con <strong>${unidades}</strong> unidades en stock.</div>
+      <div>⚠️ El borrado es para <strong>todo el negocio</strong>: se aplica a todas las PCs y a todos los usuarios, no solo a esta cuenta.</div>
+    </div>`;
 }
 
 const MAX_LOGO_BYTES = 1.5 * 1024 * 1024; // suficiente para un logo, sin inflar demasiado el localStorage
