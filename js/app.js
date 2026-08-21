@@ -23,7 +23,7 @@ const el = id => document.getElementById(id);
 
 // Versión visible de la app (subir junto con la del service worker). Sirve para
 // saber de un vistazo si un cajero quedó con una versión vieja en caché.
-const APP_VERSION = 'v29';
+const APP_VERSION = 'v30';
 
 let pendingUserId = null; // usuario que está fijando su contraseña inicial
 
@@ -35,6 +35,13 @@ function showView(id) {
 function showTab(tabName) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabName));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.toggle('active', c.id === `tab-${tabName}`));
+}
+
+// Deja el cursor listo en un campo al entrar a su pestaña (como en Ventas). El
+// pequeño retraso espera a que la pestaña ya sea visible para poder enfocar.
+function enfocarCampo(id) {
+  const i = el(id);
+  if (i) setTimeout(() => i.focus(), 60);
 }
 
 function startClock() {
@@ -169,12 +176,15 @@ function initTabs() {
         enfocarBusqueda();
       } else if (btn.dataset.tab === 'inventario' || btn.dataset.tab === 'productos') {
         refrescarProductosInventario();
+        enfocarCampo(btn.dataset.tab === 'productos' ? 'prod-buscar' : 'inv-buscar');
       } else if (btn.dataset.tab === 'dinero') {
         refrescarDinero();
       } else if (btn.dataset.tab === 'compras') {
         refrescarCompras();
+        enfocarCampo('compra-buscar');
       } else if (btn.dataset.tab === 'devoluciones') {
         refrescarDevoluciones();
+        enfocarCampo('devolucion-buscar');
       } else if (btn.dataset.tab === 'recomendaciones') {
         refrescarRecomendaciones();
       } else if (btn.dataset.tab === 'historial') {
