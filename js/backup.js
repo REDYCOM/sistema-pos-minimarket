@@ -59,7 +59,7 @@ export async function importarRespaldoCompleto(file, onDone) {
 const ENCABEZADOS = ['Código de barras', 'Nombre', 'Categoría', 'Rotación (A/B/C)', 'Proveedor', 'Stock', 'Stock mínimo', 'Precio compra', 'Precio venta'];
 
 let xlsxPromesa = null;
-function ensureXLSX() {
+export function ensureXLSX() {
   if (window.XLSX) return Promise.resolve(window.XLSX);
   if (!xlsxPromesa) {
     xlsxPromesa = new Promise((resolve, reject) => {
