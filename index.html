@@ -67,6 +67,8 @@
       <input type="number" id="apertura-monto" step="0.01" min="0" required>
       <button type="submit" class="btn btn-primary btn-lg">🔓 Abrir Caja</button>
     </form>
+    <p class="hint">¿No sos vos? Cerrá la sesión para entrar con otro usuario.</p>
+    <button type="button" id="btn-salir-apertura" class="btn">🚪 Cerrar sesión</button>
   </div>
 </section>
 
@@ -504,7 +506,10 @@
 
   <!-- TAB RECOMENDACIONES (solo admin) -->
   <div class="tab-content" id="tab-recomendaciones">
-    <div class="seccion-header"><h2>💡 Recomendaciones de compra</h2></div>
+    <div class="seccion-header">
+      <h2>💡 Recomendaciones de compra</h2>
+      <button id="btn-reco-pdf" class="btn btn-primary">📄 Exportar PDF</button>
+    </div>
     <p class="hint">Productos con <strong>stock bajo que se están vendiendo</strong>, priorizados por la ganancia que mueven y agrupados por proveedor (según las ventas de los últimos 30 días). El stock bajo que no rota no aparece aquí.</p>
     <div id="recomendaciones-lista"></div>
   </div>

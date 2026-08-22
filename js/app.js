@@ -25,7 +25,7 @@ const el = id => document.getElementById(id);
 
 // Versión visible de la app (subir junto con la del service worker). Sirve para
 // saber de un vistazo si un cajero quedó con una versión vieja en caché.
-const APP_VERSION = 'v40';
+const APP_VERSION = 'v41';
 
 let pendingUserId = null; // usuario que está fijando su contraseña inicial
 
@@ -168,6 +168,14 @@ function initAperturaForm() {
     abrirCaja(monto);
     e.target.reset();
     goToDashboard();
+  });
+
+  // Salida sin abrir caja: si alguien entró con el usuario equivocado, antes
+  // quedaba atrapado en esta pantalla (la única forma de avanzar era abrir caja).
+  el('btn-salir-apertura').addEventListener('click', () => {
+    clearSession();
+    el('form-apertura').reset();
+    showView('view-login');
   });
 }
 
