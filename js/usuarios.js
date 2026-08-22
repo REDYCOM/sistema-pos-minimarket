@@ -11,13 +11,15 @@ export function existeUsuario(username) {
 
 // El admin crea el usuario con su contraseña (queda activo de inmediato).
 export async function crearUsuario(username, role, password) {
-  const { salt, hash } = await hashPassword(password);
+  const { salt, hash, algo, iter } = await hashPassword(password);
   const usuario = {
     id: uid(),
     username,
     role, // 'admin' | 'cajero'
     salt,
     hash,
+    algo,
+    iter,
     mustChangePassword: false,
     createdAt: new Date().toISOString(),
   };
@@ -31,8 +33,8 @@ export function cambiarRol(id, role) {
 
 // El admin cambia directamente la contraseña de un usuario.
 export async function cambiarContrasena(id, password) {
-  const { salt, hash } = await hashPassword(password);
-  return db.users.update(id, { salt, hash, mustChangePassword: false });
+  const { salt, hash, algo, iter } = await hashPassword(password);
+  return db.users.update(id, { salt, hash, algo, iter, mustChangePassword: false });
 }
 
 function cantidadAdmins() {
@@ -49,13 +51,13 @@ export function tieneClaveMaestra() {
   return !!getAjustes().recoveryHash;
 }
 export async function setClaveMaestra(password) {
-  const { salt, hash } = await hashPassword(password);
-  setAjustes({ recoverySalt: salt, recoveryHash: hash });
+  const { salt, hash, algo, iter } = await hashPassword(password);
+  setAjustes({ recoverySalt: salt, recoveryHash: hash, recoveryAlgo: algo, recoveryIter: iter });
 }
 export async function verificarClaveMaestra(password) {
   const aj = getAjustes();
   if (!aj.recoveryHash || !aj.recoverySalt) return false;
-  return verifyPassword(password, aj.recoverySalt, aj.recoveryHash);
+  return verifyPassword(password, aj.recoverySalt, aj.recoveryHash, aj.recoveryAlgo, aj.recoveryIter);
 }
 
 export function eliminarUsuario(id) {

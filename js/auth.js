@@ -1,5 +1,5 @@
 import { db, uid, setSession } from './storage.js';
-import { hashPassword, verifyPassword } from './crypto.js';
+import { hashPassword, verifyPassword, necesitaMigracion } from './crypto.js';
 
 const DEFAULT_ADMIN_USERNAME = 'avi2026';
 
@@ -28,15 +28,27 @@ export async function attemptLogin(username, password) {
     return { status: 'needs-password', user };
   }
 
-  const valid = await verifyPassword(password, user.salt, user.hash);
+  const valid = await verifyPassword(password, user.salt, user.hash, user.algo, user.iter);
   if (!valid) return { status: 'invalid' };
+
+  // Migración transparente: si la contraseña estaba guardada con el método viejo
+  // (SHA-256), ahora que la conocemos se vuelve a guardar con PBKDF2. El usuario
+  // no nota nada y su contraseña sigue siendo la misma.
+  if (necesitaMigracion(user.algo)) {
+    try {
+      const nuevo = await hashPassword(password);
+      db.users.update(user.id, { salt: nuevo.salt, hash: nuevo.hash, algo: nuevo.algo, iter: nuevo.iter });
+    } catch (e) {
+      console.error('No se pudo migrar el hash de la contraseña:', e);
+    }
+  }
 
   return { status: 'ok', user };
 }
 
 export async function setInitialPassword(userId, newPassword) {
-  const { salt, hash } = await hashPassword(newPassword);
-  return db.users.update(userId, { salt, hash, mustChangePassword: false });
+  const { salt, hash, algo, iter } = await hashPassword(newPassword);
+  return db.users.update(userId, { salt, hash, algo, iter, mustChangePassword: false });
 }
 
 export function startSession(user) {

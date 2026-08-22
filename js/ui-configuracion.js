@@ -69,7 +69,7 @@ async function ejecutarReset() {
   const session = getSession();
   const admin = db.users.find(session?.userId);
   const password = el('reset-password').value;
-  const valida = admin?.hash && await verifyPassword(password, admin.salt, admin.hash);
+  const valida = admin?.hash && await verifyPassword(password, admin.salt, admin.hash, admin.algo, admin.iter);
   if (!valida) {
     errorEl.textContent = 'Contraseña de administrador incorrecta.';
     errorEl.classList.remove('hidden');
@@ -105,7 +105,7 @@ async function ejecutarCierreAnio() {
   }
   const session = getSession();
   const admin = db.users.find(session?.userId);
-  const valida = admin?.hash && await verifyPassword(el('cierre-anio-password').value, admin.salt, admin.hash);
+  const valida = admin?.hash && await verifyPassword(el('cierre-anio-password').value, admin.salt, admin.hash, admin.algo, admin.iter);
   if (!valida) {
     errorEl.textContent = 'Contraseña de administrador incorrecta.';
     errorEl.classList.remove('hidden');
