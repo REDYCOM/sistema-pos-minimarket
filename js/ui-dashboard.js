@@ -27,15 +27,28 @@ function money(n) {
   return `Bs ${Number(n).toFixed(2)}`;
 }
 
-function renderCarrito() {
+// `resaltarIdx` marca la fila que acaba de cambiar para confirmar de un vistazo
+// que el escaneo entró (el cajero no despega la vista del lector). Es el índice
+// real en el arreglo, porque si el producto ya estaba solo se le suma cantidad
+// y sigue en su posición, no al final.
+function renderCarrito({ resaltarIdx = -1 } = {}) {
   const body = el('carrito-body');
   body.innerHTML = '';
+  if (carrito.length === 0) {
+    body.innerHTML = `<tr><td colspan="5" class="carrito-vacio">
+      <strong>La venta está vacía</strong>
+      Escaneá un código de barras o buscá el producto por su nombre.
+    </td></tr>`;
+    renderResumen();
+    return;
+  }
   // Se recorre del último al primero para que el producto recién agregado
   // aparezca ARRIBA. El data-idx conserva la posición real en el arreglo, así
   // que quitar/editar cantidad siguen funcionando igual.
   for (let idx = carrito.length - 1; idx >= 0; idx--) {
     const item = carrito[idx];
     const tr = document.createElement('tr');
+    if (idx === resaltarIdx) tr.className = 'recien-agregado';
     tr.innerHTML = `
       <td>${item.nombre}</td>
       <td><input type="number" min="1" value="${item.cantidad}" data-idx="${idx}" class="cantidad-input bloque-cant rueda-numero"></td>
@@ -74,7 +87,7 @@ function agregarAlCarrito(producto) {
   }
   if (existente) existente.cantidad = nuevaCantidad;
   else carrito.push({ id: producto.id, nombre: producto.nombre, precioUnit: producto.precioVentaFinal, cantidad: 1 });
-  renderCarrito();
+  renderCarrito({ resaltarIdx: carrito.findIndex(i => i.id === producto.id) });
   el('busqueda-producto').value = '';
   el('sugerencias').classList.add('hidden');
   el('busqueda-producto').focus();
@@ -106,7 +119,11 @@ function actualizarAlertaStockBajo() {
   const bajos = productosConStockBajo();
   const badge = el('stock-bajo-alerta');
   if (bajos.length > 0) {
-    badge.textContent = `⚠ ${bajos.length} producto(s) con stock bajo`;
+    const texto = `⚠ ${bajos.length} producto(s) con stock bajo`;
+    badge.textContent = texto;
+    // En pantallas angostas el aviso se recorta para no empujar el botón de
+    // cerrar turno fuera de la vista; el texto completo queda en el title.
+    badge.title = texto;
     badge.classList.remove('hidden');
   } else {
     badge.classList.add('hidden');

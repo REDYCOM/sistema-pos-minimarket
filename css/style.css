@@ -214,15 +214,6 @@ input.input-sm { width: 6rem; display: inline-block; padding: 0.4rem; border-rad
   white-space: nowrap;
 }
 
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 400;
-  padding: 0.7rem 1.5rem 0;
-  background: var(--color-card);
-  border-bottom: 1px solid var(--color-border);
-}
-
 .topbar-fila {
   display: flex;
   align-items: center;
@@ -913,17 +904,19 @@ kbd {
   border-radius: 12px;
   padding: 0.85rem 2.2rem 0.85rem 1rem;
   box-shadow: var(--sombra-md);
-  border: 1px solid var(--color-border);
-  border-left: 4px solid var(--color-primary);
+  border: 1px solid var(--color-borde-toast, var(--color-border));
   animation: toast-in 0.3s var(--ease-out-expo);
   overflow: hidden;
   cursor: grab;
   touch-action: pan-y;
 }
-.toast-success { border-left-color: var(--color-primary); }
-.toast-error { border-left-color: var(--color-danger); }
-.toast-warning { border-left-color: var(--color-warning); }
-.toast-info { border-left-color: #2563eb; }
+/* El tipo de aviso se lee por el color del icono, del borde y de la barra de
+   tiempo, no por una pestana de color al costado. */
+.toast-success { --color-borde-toast: rgba(5,150,105,0.45); color: var(--color-primary-dark); }
+.toast-error   { --color-borde-toast: rgba(220,38,38,0.45); color: var(--color-danger-dark); }
+.toast-warning { --color-borde-toast: rgba(180,83,9,0.45); color: var(--color-warning); }
+.toast-info    { --color-borde-toast: rgba(37,99,235,0.45); color: #1d4ed8; }
+.toast-mensaje { color: var(--color-text); }
 
 .toast-icono { font-size: 1.1rem; flex-shrink: 0; }
 .toast-mensaje { font-size: 0.92rem; font-weight: 600; line-height: 1.35; }
@@ -1147,3 +1140,52 @@ kbd {
 .gasto-form-accion { display: flex; align-items: flex-end; padding-bottom: 2px; }
 .gasto-form-accion .btn { width: 100%; }
 @media (max-width: 700px) { .gasto-form-ancho { grid-column: span 1; } }
+
+/* ---------- Pulido de la barra superior ----------
+   El aviso de stock bajo llegaba a partirse en cuatro líneas y empujaba al
+   botón de cerrar turno fuera de la pantalla en móvil: el cajero no podía
+   cerrar su caja. Ahora el aviso se mantiene en una línea y cede espacio, y el
+   botón de cobro nunca se encoge. */
+.topbar { flex-wrap: nowrap; }
+.topbar .marca { flex-shrink: 0; }
+.topbar-right { margin-left: auto; min-width: 0; }
+.topbar #stock-bajo-alerta {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex-shrink: 1;
+}
+.topbar #btn-cerrar-turno,
+.topbar #btn-salir-admin { flex-shrink: 0; white-space: nowrap; }
+
+@media (max-width: 900px) {
+  /* El reloj es lo primero que sobra cuando falta ancho. */
+  .topbar .clock { display: none; }
+}
+@media (max-width: 620px) {
+  .topbar { padding-left: 0.8rem; padding-right: 0.8rem; gap: 0.6rem; }
+  .topbar .marca { font-size: 0; }        /* queda solo el logo/emoji */
+  .topbar .marca::first-letter { font-size: 1.15rem; }
+  .topbar #stock-bajo-alerta { max-width: 5.5rem; }
+}
+
+/* Descuento: el monto y la unidad son un solo control, no dos filas. */
+.descuento-controles { display: inline-flex; align-items: center; gap: 0.4rem; }
+.descuento-controles .input-sm { width: 5rem; }
+.descuento-controles select.input-sm { width: 4.6rem; }
+
+/* Carrito vacío: decir qué hacer en vez de mostrar una tabla muda. */
+.carrito-vacio { padding: 1.6rem 1rem; text-align: center; color: var(--color-muted); }
+.carrito-vacio strong { display: block; color: var(--color-text); font-weight: 600; margin-bottom: 0.2rem; }
+
+/* El único momento de movimiento que se gana su lugar en una caja: confirmar
+   que el producto recién escaneado entró. Dura poco y no bloquea el escaneo. */
+@keyframes fila-agregada {
+  from { background: var(--color-primary-light); }
+  to   { background: transparent; }
+}
+.tabla-carrito tbody tr.recien-agregado { animation: fila-agregada 0.6s var(--ease-out-expo); }
+@media (prefers-reduced-motion: reduce) {
+  .tabla-carrito tbody tr.recien-agregado { animation: none; }
+}
